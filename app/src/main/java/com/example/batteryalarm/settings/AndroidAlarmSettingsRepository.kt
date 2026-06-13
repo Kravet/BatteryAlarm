@@ -1,23 +1,34 @@
 package com.example.batteryalarm.settings
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.preferencesDataStore
 import com.example.batteryalarm.domain.AlarmSettingsRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+
+private val Context.alarmSettingsDataStore by preferencesDataStore(name = "alarm_settings")
 
 class AndroidAlarmSettingsRepository(
-    private val context: Context,
+    context: Context,
 ) : AlarmSettingsRepository {
-    private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+    private val dataStore = context.alarmSettingsDataStore
 
-    override fun isAlarmEnabled(): Boolean = preferences.getBoolean(KEY_ALARM_ENABLED, false)
+    override suspend fun isAlarmEnabled(): Boolean {
+        return dataStore.data
+            .map { preferences -> preferences[KEY_ALARM_ENABLED] ?: false }
+            .first()
+    }
 
-    override fun setAlarmEnabled(enabled: Boolean) {
-        preferences.edit()
-            .putBoolean(KEY_ALARM_ENABLED, enabled)
-            .apply()
+    override suspend fun setAlarmEnabled(enabled: Boolean): Boolean {
+        val savedPreferences = dataStore.edit { preferences ->
+            preferences[KEY_ALARM_ENABLED] = enabled
+        }
+        return savedPreferences[KEY_ALARM_ENABLED] ?: false
     }
 
     private companion object {
-        const val PREFERENCES_NAME = "alarm_settings"
-        const val KEY_ALARM_ENABLED = "alarm_enabled"
+        val KEY_ALARM_ENABLED = booleanPreferencesKey("alarm_enabled")
     }
 }

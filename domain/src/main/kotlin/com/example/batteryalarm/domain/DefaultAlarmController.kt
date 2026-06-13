@@ -11,7 +11,7 @@ class DefaultAlarmController(
     override val state: AlarmState
         get() = currentState
 
-    override fun startAlarm(reason: AlarmStartReason): AlarmStartResult {
+    override suspend fun startAlarm(reason: AlarmStartReason): AlarmStartResult {
         if (!settingsRepository.isAlarmEnabled()) {
             return AlarmStartResult.Disabled
         }

@@ -1,7 +1,7 @@
 package com.example.batteryalarm.domain
 
 interface AlarmSettingsRepository {
-    fun isAlarmEnabled(): Boolean
+    suspend fun isAlarmEnabled(): Boolean
 
-    fun setAlarmEnabled(enabled: Boolean)
+    suspend fun setAlarmEnabled(enabled: Boolean): Boolean
 }

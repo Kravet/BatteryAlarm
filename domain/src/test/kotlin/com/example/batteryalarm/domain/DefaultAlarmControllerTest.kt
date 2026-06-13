@@ -1,12 +1,13 @@
 package com.example.batteryalarm.domain
 
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class DefaultAlarmControllerTest {
 
     @Test
-    fun `when alarm is enabled, then startAlarm activates alarm and starts outputs`() {
+    fun `when alarm is enabled, then startAlarm activates alarm and starts outputs`() = runTest {
         val settingsRepository = FakeAlarmSettingsRepository(enabled = true)
         val soundPlayer = FakeAlarmSoundPlayer()
         val vibrator = FakeAlarmVibrator()
@@ -29,7 +30,7 @@ class DefaultAlarmControllerTest {
     }
 
     @Test
-    fun `when alarm is disabled, then startAlarm leaves alarm idle and does not start outputs`() {
+    fun `when alarm is disabled, then startAlarm leaves alarm idle and does not start outputs`() = runTest {
         val soundPlayer = FakeAlarmSoundPlayer()
         val vibrator = FakeAlarmVibrator()
         val notifier = FakeAlarmNotifier()
@@ -50,7 +51,7 @@ class DefaultAlarmControllerTest {
     }
 
     @Test
-    fun `when alarm is already active, then startAlarm keeps existing alarm and does not restart outputs`() {
+    fun `when alarm is already active, then startAlarm keeps existing alarm and does not restart outputs`() = runTest {
         val soundPlayer = FakeAlarmSoundPlayer()
         val vibrator = FakeAlarmVibrator()
         val notifier = FakeAlarmNotifier()
@@ -72,7 +73,7 @@ class DefaultAlarmControllerTest {
     }
 
     @Test
-    fun `when active alarm is dismissed by user, then stopAlarm stops outputs and returns to idle`() {
+    fun `when active alarm is dismissed by user, then stopAlarm stops outputs and returns to idle`() = runTest {
         val soundPlayer = FakeAlarmSoundPlayer()
         val vibrator = FakeAlarmVibrator()
         val notifier = FakeAlarmNotifier()
@@ -100,7 +101,7 @@ class DefaultAlarmControllerTest {
     }
 
     @Test
-    fun `when active alarm stops because power is connected, then stopAlarm stops outputs and returns to idle`() {
+    fun `when active alarm stops because power is connected, then stopAlarm stops outputs and returns to idle`() = runTest {
         val soundPlayer = FakeAlarmSoundPlayer()
         val vibrator = FakeAlarmVibrator()
         val notifier = FakeAlarmNotifier()
@@ -165,10 +166,11 @@ private class FakeAlarmSettingsRepository(
 ) : AlarmSettingsRepository {
     private var alarmEnabled = enabled
 
-    override fun isAlarmEnabled(): Boolean = alarmEnabled
+    override suspend fun isAlarmEnabled(): Boolean = alarmEnabled
 
-    override fun setAlarmEnabled(enabled: Boolean) {
+    override suspend fun setAlarmEnabled(enabled: Boolean): Boolean {
         alarmEnabled = enabled
+        return alarmEnabled
     }
 }
 
