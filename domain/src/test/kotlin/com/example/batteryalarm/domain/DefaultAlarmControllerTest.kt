@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class DefaultAlarmControllerTest {
+
     @Test
     fun startAlarmActivatesAlarmAndStartsOutputs() {
         val settingsRepository = FakeAlarmSettingsRepository(enabled = true)
