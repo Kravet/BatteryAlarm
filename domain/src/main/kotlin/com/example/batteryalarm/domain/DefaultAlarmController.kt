@@ -6,30 +6,44 @@ class DefaultAlarmController(
     private val vibrator: AlarmVibrator,
     private val notifier: AlarmNotifier,
 ) : AlarmController {
-    private var currentState = AlarmState.Idle
+    private var currentState: AlarmState = AlarmState.Idle
 
     override val state: AlarmState
         get() = currentState
 
-    override fun startAlarm(reason: AlarmStartReason) {
-        if (!settingsRepository.isAlarmEnabled() || currentState == AlarmState.Active) {
-            return
+    override fun startAlarm(reason: AlarmStartReason): AlarmStartResult {
+        if (!settingsRepository.isAlarmEnabled()) {
+            return AlarmStartResult.Disabled
         }
 
-        currentState = AlarmState.Active
-        soundPlayer.play()
-        vibrator.vibrate()
+        val activeState = currentState as? AlarmState.Active
+        if (activeState != null) {
+            return AlarmStartResult.AlreadyActive(activeState)
+        }
+
+        val newState = AlarmState.Active(startReason = reason)
+        soundPlayer.startLooping()
+        vibrator.startLooping()
         notifier.showAlarmStarted(reason)
+
+        currentState = newState
+        return AlarmStartResult.Started(newState)
     }
 
-    override fun stopAlarm(reason: AlarmStopReason) {
-        if (currentState == AlarmState.Idle) {
-            return
+    override fun stopAlarm(reason: AlarmStopReason): AlarmStopResult {
+        val activeState = currentState as? AlarmState.Active
+        if (activeState == null) {
+            return AlarmStopResult.AlreadyIdle
         }
 
-        currentState = AlarmState.Idle
         soundPlayer.stop()
         vibrator.stop()
         notifier.clearAlarm()
+
+        currentState = AlarmState.Idle
+        return AlarmStopResult.Stopped(
+            previousState = activeState,
+            reason = reason,
+        )
     }
 }

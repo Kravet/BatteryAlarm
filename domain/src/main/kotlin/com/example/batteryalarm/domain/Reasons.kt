@@ -2,7 +2,7 @@ package com.example.batteryalarm.domain
 
 enum class AlarmStartReason {
     SystemLowBattery,
-    Manual,
+    TestAlarmFlow,
 }
 
 enum class AlarmStopReason {

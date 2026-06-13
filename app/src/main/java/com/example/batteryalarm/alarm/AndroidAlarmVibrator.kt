@@ -6,7 +6,7 @@ import com.example.batteryalarm.domain.AlarmVibrator
 class AndroidAlarmVibrator(
     private val context: Context,
 ) : AlarmVibrator {
-    override fun vibrate() = Unit
+    override fun startLooping() = Unit
 
     override fun stop() = Unit
 }

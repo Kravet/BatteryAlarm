@@ -1,6 +1,9 @@
 package com.example.batteryalarm.domain
 
-enum class AlarmState {
-    Idle,
-    Active,
+sealed interface AlarmState {
+    data object Idle : AlarmState
+
+    data class Active(
+        val startReason: AlarmStartReason,
+    ) : AlarmState
 }
