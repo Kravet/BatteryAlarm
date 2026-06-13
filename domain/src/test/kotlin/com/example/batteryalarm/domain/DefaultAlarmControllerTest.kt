@@ -6,7 +6,7 @@ import org.junit.Test
 class DefaultAlarmControllerTest {
 
     @Test
-    fun startAlarmActivatesAlarmAndStartsOutputs() {
+    fun `when alarm is enabled, then startAlarm activates alarm and starts outputs`() {
         val settingsRepository = FakeAlarmSettingsRepository(enabled = true)
         val soundPlayer = FakeAlarmSoundPlayer()
         val vibrator = FakeAlarmVibrator()
@@ -29,7 +29,7 @@ class DefaultAlarmControllerTest {
     }
 
     @Test
-    fun startAlarmDoesNothingWhenAlarmIsDisabled() {
+    fun `when alarm is disabled, then startAlarm leaves alarm idle and does not start outputs`() {
         val soundPlayer = FakeAlarmSoundPlayer()
         val vibrator = FakeAlarmVibrator()
         val notifier = FakeAlarmNotifier()
@@ -50,7 +50,7 @@ class DefaultAlarmControllerTest {
     }
 
     @Test
-    fun startAlarmDoesNothingWhenAlarmIsAlreadyActive() {
+    fun `when alarm is already active, then startAlarm keeps existing alarm and does not restart outputs`() {
         val soundPlayer = FakeAlarmSoundPlayer()
         val vibrator = FakeAlarmVibrator()
         val notifier = FakeAlarmNotifier()
@@ -72,7 +72,7 @@ class DefaultAlarmControllerTest {
     }
 
     @Test
-    fun stopAlarmWithUserDismissedStopsOutputsAndReturnsToIdle() {
+    fun `when active alarm is dismissed by user, then stopAlarm stops outputs and returns to idle`() {
         val soundPlayer = FakeAlarmSoundPlayer()
         val vibrator = FakeAlarmVibrator()
         val notifier = FakeAlarmNotifier()
@@ -100,7 +100,7 @@ class DefaultAlarmControllerTest {
     }
 
     @Test
-    fun stopAlarmWithPowerConnectedStopsOutputsAndReturnsToIdle() {
+    fun `when active alarm stops because power is connected, then stopAlarm stops outputs and returns to idle`() {
         val soundPlayer = FakeAlarmSoundPlayer()
         val vibrator = FakeAlarmVibrator()
         val notifier = FakeAlarmNotifier()
@@ -128,7 +128,7 @@ class DefaultAlarmControllerTest {
     }
 
     @Test
-    fun stopAlarmDoesNothingWhenAlarmIsAlreadyIdle() {
+    fun `when alarm is already idle, then stopAlarm leaves alarm idle and does not stop outputs`() {
         val soundPlayer = FakeAlarmSoundPlayer()
         val vibrator = FakeAlarmVibrator()
         val notifier = FakeAlarmNotifier()
