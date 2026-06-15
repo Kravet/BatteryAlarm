@@ -4,9 +4,12 @@ import com.example.batteryalarm.domain.AlarmSettingsRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
@@ -64,7 +67,7 @@ class MainViewModelTest {
     }
 
     @Test
-    fun `alarm enabled change updates state from saved value returned by repository`() = runTest {
+    fun `alarm enabled change updates state from saved value emitted by repository`() = runTest {
         val repository = FakeAlarmSettingsRepository(
             enabled = false,
             valueSavedAfterSet = false,
@@ -123,30 +126,6 @@ class MainViewModelTest {
         viewModel.onAlarmEnabledChange(true)
         advanceUntilIdle()
 
-        assertEquals(1, repository.readCount)
-        assertFalse(viewModel.uiState.value.isAlarmEnabled)
-        assertEquals(emptyList<MainSideEffect>(), sideEffects)
-    }
-
-    @Test
-    fun `alarm enabled change does not handle fallback read cancellation as failure`() = runTest {
-        val repository = FakeAlarmSettingsRepository(
-            enabled = false,
-            exceptionOnSet = IllegalStateException("Write failed"),
-            exceptionOnRead = CancellationException("Read cancelled"),
-            exceptionOnReadCount = 2,
-        )
-        val viewModel = MainViewModel(repository)
-        val sideEffects = mutableListOf<MainSideEffect>()
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-            viewModel.sideEffects.toCollection(sideEffects)
-        }
-
-        advanceUntilIdle()
-        viewModel.onAlarmEnabledChange(true)
-        advanceUntilIdle()
-
-        assertEquals(2, repository.readCount)
         assertFalse(viewModel.uiState.value.isAlarmEnabled)
         assertEquals(emptyList<MainSideEffect>(), sideEffects)
     }
@@ -165,25 +144,18 @@ private class FakeAlarmSettingsRepository(
     enabled: Boolean,
     private val valueSavedAfterSet: Boolean? = null,
     private val exceptionOnSet: Exception? = null,
-    private val exceptionOnRead: Exception? = null,
-    private val exceptionOnReadCount: Int? = null,
 ) : AlarmSettingsRepository {
-    private var alarmEnabled = enabled
-    var readCount = 0
-        private set
+    private val alarmEnabledFlow = MutableStateFlow(enabled)
+
+    override val alarmEnabled: Flow<Boolean> = alarmEnabledFlow.asStateFlow()
 
     override suspend fun isAlarmEnabled(): Boolean {
-        readCount += 1
-        if (readCount == exceptionOnReadCount) {
-            exceptionOnRead?.let { throw it }
-        }
-        return alarmEnabled
+        return alarmEnabledFlow.value
     }
 
-    override suspend fun setAlarmEnabled(enabled: Boolean): Boolean {
+    override suspend fun setAlarmEnabled(enabled: Boolean) {
         exceptionOnSet?.let { throw it }
-        alarmEnabled = valueSavedAfterSet ?: enabled
-        return alarmEnabled
+        alarmEnabledFlow.value = valueSavedAfterSet ?: enabled
     }
 }
 

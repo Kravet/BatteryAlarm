@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.batteryalarm.domain.AlarmSettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,7 +11,9 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -21,6 +22,7 @@ class MainViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
+    //TODO single time event or channel the that google propose
     private val _sideEffects = MutableSharedFlow<MainSideEffect>(
         extraBufferCapacity = 1,
     )
@@ -28,35 +30,25 @@ class MainViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val alarmEnabled = try {
-                alarmSettingsRepository.isAlarmEnabled()
-            } catch (exception: CancellationException) {
-                throw exception
-            } catch (exception: Exception) {
-                _uiState.value.isAlarmEnabled
-            }
-
-            _uiState.value = MainUiState(isAlarmEnabled = alarmEnabled)
+            alarmSettingsRepository.alarmEnabled
+                .catch { exception ->
+                    if (exception is CancellationException) {
+                        throw exception
+                    }
+                }
+                .collect { alarmEnabled ->
+                    _uiState.value = MainUiState(isAlarmEnabled = alarmEnabled)
+                }
         }
     }
 
     fun onAlarmEnabledChange(enabled: Boolean) {
         viewModelScope.launch {
             try {
-                val savedAlarmEnabled = alarmSettingsRepository.setAlarmEnabled(enabled)
-                _uiState.value = MainUiState(isAlarmEnabled = savedAlarmEnabled)
+                alarmSettingsRepository.setAlarmEnabled(enabled)
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
-                val currentAlarmEnabled = try {
-                    alarmSettingsRepository.isAlarmEnabled()
-                } catch (cancellationException: CancellationException) {
-                    throw cancellationException
-                } catch (readException: Exception) {
-                    _uiState.value.isAlarmEnabled
-                }
-
-                _uiState.value = MainUiState(isAlarmEnabled = currentAlarmEnabled)
                 _sideEffects.emit(MainSideEffect.ShowAlarmSettingsChangeFailed)
             }
         }

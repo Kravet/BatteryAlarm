@@ -1,5 +1,8 @@
 package com.example.batteryalarm.domain
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -164,13 +167,14 @@ class DefaultAlarmControllerTest {
 private class FakeAlarmSettingsRepository(
     enabled: Boolean,
 ) : AlarmSettingsRepository {
-    private var alarmEnabled = enabled
+    private val alarmEnabledFlow = MutableStateFlow(enabled)
 
-    override suspend fun isAlarmEnabled(): Boolean = alarmEnabled
+    override val alarmEnabled: Flow<Boolean> = alarmEnabledFlow.asStateFlow()
 
-    override suspend fun setAlarmEnabled(enabled: Boolean): Boolean {
-        alarmEnabled = enabled
-        return alarmEnabled
+    override suspend fun isAlarmEnabled(): Boolean = alarmEnabledFlow.value
+
+    override suspend fun setAlarmEnabled(enabled: Boolean) {
+        alarmEnabledFlow.value = enabled
     }
 }
 

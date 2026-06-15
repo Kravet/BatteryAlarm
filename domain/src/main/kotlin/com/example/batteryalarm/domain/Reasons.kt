@@ -7,5 +7,6 @@ enum class AlarmStartReason {
 
 enum class AlarmStopReason {
     PowerConnected,
+    SettingsDisabled,
     UserDismissed,
 }
