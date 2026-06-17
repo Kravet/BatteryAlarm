@@ -1,6 +1,12 @@
 package com.example.batteryalarm.ui
 
+import com.example.batteryalarm.domain.AlarmController
+import com.example.batteryalarm.domain.AlarmStartReason
+import com.example.batteryalarm.domain.AlarmStartResult
 import com.example.batteryalarm.domain.AlarmSettingsRepository
+import com.example.batteryalarm.domain.AlarmState
+import com.example.batteryalarm.domain.AlarmStopReason
+import com.example.batteryalarm.domain.AlarmStopResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -33,7 +39,10 @@ class MainViewModelTest {
 
     @Test
     fun `initial state uses stored alarm enabled flag`() = runTest {
-        val viewModel = MainViewModel(FakeAlarmSettingsRepository(enabled = true))
+        val viewModel = MainViewModel(
+            alarmSettingsRepository = FakeAlarmSettingsRepository(enabled = true),
+            alarmController = FakeAlarmController(),
+        )
 
         advanceUntilIdle()
 
@@ -43,7 +52,7 @@ class MainViewModelTest {
     @Test
     fun `alarm enabled change stores enabled flag and updates state`() = runTest {
         val repository = FakeAlarmSettingsRepository(enabled = false)
-        val viewModel = MainViewModel(repository)
+        val viewModel = MainViewModel(repository, FakeAlarmController())
 
         advanceUntilIdle()
         viewModel.onAlarmEnabledChange(true)
@@ -56,7 +65,7 @@ class MainViewModelTest {
     @Test
     fun `alarm disabled change stores disabled flag and updates state`() = runTest {
         val repository = FakeAlarmSettingsRepository(enabled = true)
-        val viewModel = MainViewModel(repository)
+        val viewModel = MainViewModel(repository, FakeAlarmController())
 
         advanceUntilIdle()
         viewModel.onAlarmEnabledChange(false)
@@ -72,7 +81,7 @@ class MainViewModelTest {
             enabled = false,
             valueSavedAfterSet = false,
         )
-        val viewModel = MainViewModel(repository)
+        val viewModel = MainViewModel(repository, FakeAlarmController())
 
         advanceUntilIdle()
         viewModel.onAlarmEnabledChange(true)
@@ -89,7 +98,7 @@ class MainViewModelTest {
                 enabled = false,
                 exceptionOnSet = IllegalStateException("Write failed"),
             )
-            val viewModel = MainViewModel(repository)
+            val viewModel = MainViewModel(repository, FakeAlarmController())
             val sideEffects = mutableListOf<MainSideEffect>()
             val collectJob = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
                 viewModel.sideEffects
@@ -116,7 +125,7 @@ class MainViewModelTest {
             enabled = false,
             exceptionOnSet = CancellationException("Save cancelled"),
         )
-        val viewModel = MainViewModel(repository)
+        val viewModel = MainViewModel(repository, FakeAlarmController())
         val sideEffects = mutableListOf<MainSideEffect>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             viewModel.sideEffects.toCollection(sideEffects)
@@ -132,11 +141,92 @@ class MainViewModelTest {
 
     @Test
     fun `initial state is disabled when stored flag is disabled`() = runTest {
-        val viewModel = MainViewModel(FakeAlarmSettingsRepository(enabled = false))
+        val viewModel = MainViewModel(
+            alarmSettingsRepository = FakeAlarmSettingsRepository(enabled = false),
+            alarmController = FakeAlarmController(),
+        )
 
         advanceUntilIdle()
 
         assertFalse(viewModel.uiState.value.isAlarmEnabled)
+    }
+
+    @Test
+    fun `test alarm starts alarm flow and requests alarm screen launch`() = runTest {
+        val alarmController = FakeAlarmController()
+        val viewModel = MainViewModel(
+            alarmSettingsRepository = FakeAlarmSettingsRepository(enabled = false),
+            alarmController = alarmController,
+        )
+        val sideEffects = mutableListOf<MainSideEffect>()
+        val collectJob = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.sideEffects
+                .take(1)
+                .toList(sideEffects)
+        }
+
+        advanceUntilIdle()
+        viewModel.onTestAlarmClick()
+        advanceUntilIdle()
+
+        collectJob.join()
+        assertEquals(listOf(AlarmStartReason.TestAlarmFlow), alarmController.startedReasons)
+        assertEquals(listOf(MainSideEffect.LaunchAlarmScreen), sideEffects)
+        assertFalse(viewModel.uiState.value.isAlarmScreenVisible)
+    }
+
+    @Test
+    fun `alarm intent shows alarm screen when alarm is active`() = runTest {
+        val viewModel = MainViewModel(
+            alarmSettingsRepository = FakeAlarmSettingsRepository(enabled = true),
+            alarmController = FakeAlarmController(
+                initialState = AlarmState.Active(AlarmStartReason.SystemLowBattery),
+            ),
+        )
+
+        advanceUntilIdle()
+        viewModel.onAlarmIntentReceived(isAlarmIntent = true)
+
+        assertTrue(viewModel.uiState.value.isAlarmScreenVisible)
+    }
+
+    @Test
+    fun `stop alarm stops outputs and closes alarm screen`() = runTest {
+        val alarmController = FakeAlarmController(
+            initialState = AlarmState.Active(AlarmStartReason.TestAlarmFlow),
+        )
+        val viewModel = MainViewModel(
+            alarmSettingsRepository = FakeAlarmSettingsRepository(enabled = true),
+            alarmController = alarmController,
+        )
+
+        advanceUntilIdle()
+        viewModel.onTestAlarmClick()
+        advanceUntilIdle()
+        viewModel.onAlarmIntentReceived(isAlarmIntent = true)
+        viewModel.onStopAlarmClick()
+
+        assertEquals(listOf(AlarmStopReason.UserDismissed), alarmController.stoppedReasons)
+        assertFalse(viewModel.uiState.value.isAlarmScreenVisible)
+    }
+
+    @Test
+    fun `alarm setting updates preserve visible alarm screen`() = runTest {
+        val repository = FakeAlarmSettingsRepository(enabled = false)
+        val viewModel = MainViewModel(
+            alarmSettingsRepository = repository,
+            alarmController = FakeAlarmController(),
+        )
+
+        advanceUntilIdle()
+        viewModel.onTestAlarmClick()
+        advanceUntilIdle()
+        viewModel.onAlarmIntentReceived(isAlarmIntent = true)
+        repository.setAlarmEnabled(true)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isAlarmEnabled)
+        assertTrue(viewModel.uiState.value.isAlarmScreenVisible)
     }
 }
 
@@ -156,6 +246,42 @@ private class FakeAlarmSettingsRepository(
     override suspend fun setAlarmEnabled(enabled: Boolean) {
         exceptionOnSet?.let { throw it }
         alarmEnabledFlow.value = valueSavedAfterSet ?: enabled
+    }
+}
+
+private class FakeAlarmController(
+    initialState: AlarmState = AlarmState.Idle,
+    private val startException: Exception? = null,
+) : AlarmController {
+    override var state: AlarmState = initialState
+        private set
+
+    val startedReasons = mutableListOf<AlarmStartReason>()
+    val stoppedReasons = mutableListOf<AlarmStopReason>()
+
+    override suspend fun startAlarm(reason: AlarmStartReason): AlarmStartResult {
+        startException?.let { throw it }
+        startedReasons += reason
+
+        val activeState = state as? AlarmState.Active
+        if (activeState != null) {
+            return AlarmStartResult.AlreadyActive(activeState)
+        }
+
+        val newState = AlarmState.Active(reason)
+        state = newState
+        return AlarmStartResult.Started(newState)
+    }
+
+    override fun stopAlarm(reason: AlarmStopReason): AlarmStopResult {
+        stoppedReasons += reason
+
+        val activeState = state as? AlarmState.Active ?: return AlarmStopResult.AlreadyIdle
+        state = AlarmState.Idle
+        return AlarmStopResult.Stopped(
+            previousState = activeState,
+            reason = reason,
+        )
     }
 }
 

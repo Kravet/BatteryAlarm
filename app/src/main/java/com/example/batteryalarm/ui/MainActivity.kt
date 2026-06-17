@@ -1,29 +1,17 @@
 package com.example.batteryalarm.ui
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -47,6 +35,16 @@ class MainActivity : ComponentActivity() {
                                     message = "Could not save battery alarm setting. Please try again.",
                                 )
                             }
+
+                            MainSideEffect.ShowTestAlarmStartFailed -> {
+                                snackbarHostState.showSnackbar(
+                                    message = "Could not start test alarm. Please try again.",
+                                )
+                            }
+
+                            MainSideEffect.LaunchAlarmScreen -> {
+                                startActivity(createAlarmIntent(this@MainActivity))
+                            }
                         }
                     }
                 }
@@ -55,80 +53,31 @@ class MainActivity : ComponentActivity() {
                     uiState = uiState,
                     snackbarHostState = snackbarHostState,
                     onAlarmEnabledChange = viewModel::onAlarmEnabledChange,
+                    onTestAlarmClick = viewModel::onTestAlarmClick,
+                    onStopAlarmClick = viewModel::onStopAlarmClick,
                 )
             }
         }
+        viewModel.onAlarmIntentReceived(isAlarmIntent(intent))
     }
-}
 
-@Composable
-fun MainScreen(
-    uiState: MainUiState,
-    snackbarHostState: SnackbarHostState,
-    onAlarmEnabledChange: (Boolean) -> Unit,
-) {
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        },
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Text(
-                    text = if (uiState.isAlarmEnabled) {
-                        "Battery alarm is enabled"
-                    } else {
-                        "Battery alarm is disabled"
-                    },
-                )
-                Button(
-                    onClick = {
-                        onAlarmEnabledChange(!uiState.isAlarmEnabled)
-                    },
-                ) {
-                    Text(
-                        text = if (uiState.isAlarmEnabled) {
-                            "Disable battery alarm"
-                        } else {
-                            "Enable battery alarm"
-                        },
-                    )
-                }
-            }
-        }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        viewModel.onAlarmIntentReceived(isAlarmIntent(intent))
     }
-}
 
-@Preview(showBackground = true)
-@Composable
-private fun MainScreenPreview() {
-    BatteryAlarmTheme {
-        MainScreen(
-            uiState = MainUiState(isAlarmEnabled = false),
-            snackbarHostState = remember { SnackbarHostState() },
-            onAlarmEnabledChange = {},
-        )
-    }
-}
+    companion object {
+        private const val ACTION_SHOW_ALARM = "com.example.batteryalarm.action.SHOW_ALARM"
 
-@Preview(showBackground = true)
-@Composable
-private fun MainScreenEnabledPreview() {
-    BatteryAlarmTheme {
-        MainScreen(
-            uiState = MainUiState(isAlarmEnabled = true),
-            snackbarHostState = remember { SnackbarHostState() },
-            onAlarmEnabledChange = {},
-        )
+        fun createAlarmIntent(context: Context): Intent = Intent(context, MainActivity::class.java)
+            .setAction(ACTION_SHOW_ALARM)
+            .addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP,
+            )
+
+        fun isAlarmIntent(intent: Intent?): Boolean = intent?.action == ACTION_SHOW_ALARM
     }
 }

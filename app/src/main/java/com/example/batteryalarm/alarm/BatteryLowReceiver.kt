@@ -4,8 +4,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.example.batteryalarm.domain.AlarmStartResult
 import com.example.batteryalarm.domain.AlarmController
 import com.example.batteryalarm.domain.AlarmStartReason
+import com.example.batteryalarm.ui.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -27,7 +29,13 @@ class BatteryLowReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                alarmController.startAlarm(AlarmStartReason.SystemLowBattery)
+                when (alarmController.startAlarm(AlarmStartReason.SystemLowBattery)) {
+                    is AlarmStartResult.Started,
+                    is AlarmStartResult.AlreadyActive,
+                    -> context.startActivity(MainActivity.createAlarmIntent(context))
+
+                    AlarmStartResult.Disabled -> Unit
+                }
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {

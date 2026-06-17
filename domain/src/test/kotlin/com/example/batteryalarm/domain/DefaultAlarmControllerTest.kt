@@ -54,6 +54,28 @@ class DefaultAlarmControllerTest {
     }
 
     @Test
+    fun `when alarm is disabled, then test alarm still activates alarm and starts outputs`() = runTest {
+        val soundPlayer = FakeAlarmSoundPlayer()
+        val vibrator = FakeAlarmVibrator()
+        val notifier = FakeAlarmNotifier()
+        val controller = createController(
+            settingsRepository = FakeAlarmSettingsRepository(enabled = false),
+            soundPlayer = soundPlayer,
+            vibrator = vibrator,
+            notifier = notifier,
+        )
+
+        val result = controller.startAlarm(AlarmStartReason.TestAlarmFlow)
+
+        val expectedState = AlarmState.Active(AlarmStartReason.TestAlarmFlow)
+        assertEquals(AlarmStartResult.Started(expectedState), result)
+        assertEquals(expectedState, controller.state)
+        assertEquals(1, soundPlayer.startLoopingCount)
+        assertEquals(1, vibrator.startLoopingCount)
+        assertEquals(listOf(AlarmStartReason.TestAlarmFlow), notifier.startedReasons)
+    }
+
+    @Test
     fun `when alarm is already active, then startAlarm keeps existing alarm and does not restart outputs`() = runTest {
         val soundPlayer = FakeAlarmSoundPlayer()
         val vibrator = FakeAlarmVibrator()

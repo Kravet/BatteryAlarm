@@ -12,7 +12,7 @@ class DefaultAlarmController(
         get() = currentState
 
     override suspend fun startAlarm(reason: AlarmStartReason): AlarmStartResult {
-        if (!settingsRepository.isAlarmEnabled()) {
+        if (reason != AlarmStartReason.TestAlarmFlow && !settingsRepository.isAlarmEnabled()) {
             return AlarmStartResult.Disabled
         }
 

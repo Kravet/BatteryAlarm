@@ -2,7 +2,12 @@ package com.example.batteryalarm.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.batteryalarm.domain.AlarmController
+import com.example.batteryalarm.domain.AlarmStartReason
+import com.example.batteryalarm.domain.AlarmStartResult
 import com.example.batteryalarm.domain.AlarmSettingsRepository
+import com.example.batteryalarm.domain.AlarmState
+import com.example.batteryalarm.domain.AlarmStopReason
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -18,6 +23,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val alarmSettingsRepository: AlarmSettingsRepository,
+    private val alarmController: AlarmController,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -37,7 +43,7 @@ class MainViewModel @Inject constructor(
                     }
                 }
                 .collect { alarmEnabled ->
-                    _uiState.value = MainUiState(isAlarmEnabled = alarmEnabled)
+                    _uiState.value = _uiState.value.copy(isAlarmEnabled = alarmEnabled)
                 }
         }
     }
@@ -53,12 +59,47 @@ class MainViewModel @Inject constructor(
             }
         }
     }
+
+    fun onAlarmIntentReceived(isAlarmIntent: Boolean) {
+        if (!isAlarmIntent) {
+            return
+        }
+        if (alarmController.state is AlarmState.Active) {
+            _uiState.value = _uiState.value.copy(isAlarmScreenVisible = true)
+        }
+    }
+
+    fun onTestAlarmClick() {
+        viewModelScope.launch {
+            try {
+                when (alarmController.startAlarm(AlarmStartReason.TestAlarmFlow)) {
+                    is AlarmStartResult.Started,
+                    is AlarmStartResult.AlreadyActive,
+                    -> _sideEffects.emit(MainSideEffect.LaunchAlarmScreen)
+
+                    AlarmStartResult.Disabled -> Unit
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                _sideEffects.emit(MainSideEffect.ShowTestAlarmStartFailed)
+            }
+        }
+    }
+
+    fun onStopAlarmClick() {
+        alarmController.stopAlarm(AlarmStopReason.UserDismissed)
+        _uiState.value = _uiState.value.copy(isAlarmScreenVisible = false)
+    }
 }
 
 data class MainUiState(
     val isAlarmEnabled: Boolean = false,
+    val isAlarmScreenVisible: Boolean = false,
 )
 
 sealed interface MainSideEffect {
     data object ShowAlarmSettingsChangeFailed : MainSideEffect
+    data object ShowTestAlarmStartFailed : MainSideEffect
+    data object LaunchAlarmScreen : MainSideEffect
 }
