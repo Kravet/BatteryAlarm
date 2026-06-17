@@ -64,6 +64,10 @@ class MainViewModel @Inject constructor(
         if (!isAlarmIntent) {
             return
         }
+        syncAlarmScreenVisibility()
+    }
+
+    fun syncAlarmScreenVisibility() {
         if (alarmController.state is AlarmState.Active) {
             _uiState.value = _uiState.value.copy(isAlarmScreenVisible = true)
         }

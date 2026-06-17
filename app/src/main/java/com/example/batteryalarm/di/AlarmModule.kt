@@ -40,8 +40,8 @@ object AlarmModule {
     @Provides
     @Singleton
     fun provideBatteryLowReceiverRegistrar(
-        @ApplicationContext context: Context,
-    ): BatteryLowReceiverRegistrar = AndroidBatteryLowReceiverRegistrar(context)
+        registrar: AndroidBatteryLowReceiverRegistrar,
+    ): BatteryLowReceiverRegistrar = registrar
 
     @Provides
     @Singleton
