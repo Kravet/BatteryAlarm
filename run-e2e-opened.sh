@@ -10,7 +10,7 @@ fi
 adb shell input keyevent KEYCODE_WAKEUP >/dev/null
 adb shell wm dismiss-keyguard >/dev/null
 
-TEST_CLASS='com.example.batteryalarm.LowBatteryE2eTest#whenAppIsOpenedAndBatteryLowReceived_thenShowAlarm'
+TEST_CLASS='com.example.batteryalarm.LowBatteryE2eTest#enabled_foreground'
 
 ./gradlew :app:connectedDebugAndroidTest \
   "-Pandroid.testInstrumentationRunnerArguments.class=${TEST_CLASS}"

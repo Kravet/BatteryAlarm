@@ -14,6 +14,22 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/**
+ * E2E matrix for low-battery alarm UI (alarm enabled × app lifecycle × battery low).
+ *
+ * ```
+ * | alarm   | lifecycle     | battery low | alarm screen |
+ * |---------|---------------|-------------|--------------|
+ * | disabled| foreground    | yes         | no           |
+ * | enabled | foreground    | yes         | yes          |
+ * | enabled | background    | yes         | yes          |
+ * | enabled | locked+doze   | yes         | yes          |
+ * ```
+ *
+ * Not covered here (same domain path or trivial):
+ * - disabled × background/locked — [DefaultAlarmController] returns Disabled regardless of lifecycle
+ * - enabled/disabled × * × no low battery — no broadcast, nothing to assert
+ */
 @RunWith(AndroidJUnit4::class)
 class LowBatteryE2eTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -38,48 +54,63 @@ class LowBatteryE2eTest {
         device.pressHome()
     }
 
-    @Test
-    fun whenAlarmIsDisabledAndBatteryLowReceived_thenDoNotShowAlarm() {
-        launchApp()
-        disableBatteryAlarm()
-
-        drainBatteryWithoutExpectingAlarm()
-    }
+    // --- when alarm disabled ---
 
     @Test
-    fun whenAppIsOpenedAndBatteryLowReceived_thenShowAlarm() {
-        launchApp()
-        enableBatteryAlarm()
+    fun disabled_foreground() = runScenario(SCENARIOS.disabledForeground)
 
-        drainBatteryUntilAlarmIsVisible()
-    }
+    // --- when alarm enabled ---
 
     @Test
-    fun whenAppIsClosedAndBatteryLowReceived_thenShowAlarm() {
-        launchApp()
-        enableBatteryAlarm()
-        device.pressHome()
-        waitUntilLauncherVisible()
-
-        drainBatteryUntilAlarmIsVisible()
-    }
+    fun enabled_foreground() = runScenario(SCENARIOS.enabledForeground)
 
     @Test
-    fun whenAppIsLockedAndDozeAndBatteryLowReceived_thenShowAlarm() {
-        launchApp()
-        enableBatteryAlarm()
-        device.pressHome()
-        waitUntilLauncherVisible()
+    fun enabled_background() = runScenario(SCENARIOS.enabledBackground)
 
-        runShell("cmd deviceidle force-idle")
-        runShell("input keyevent KEYCODE_SLEEP")
+    @Test
+    fun enabled_locked_doze() = runScenario(SCENARIOS.enabledLockedDoze)
+
+    private fun runScenario(scenario: LowBatteryScenario) {
+        launchApp()
+        applyAlarmSetting(scenario.alarm)
+        applyAppLifecycle(scenario.lifecycle)
 
         triggerSystemBatteryLow()
 
-        runShell("cmd deviceidle unforce")
-        wakeAndUnlockDevice()
-        launchApp()
-        assertAlarmScreenVisible()
+        if (scenario.lifecycle == AppLifecycle.LOCKED_IN_DOZE) {
+            runShell("cmd deviceidle unforce")
+            wakeAndUnlockDevice()
+            launchApp()
+        }
+
+        if (scenario.expectAlarmScreen) {
+            assertAlarmScreenVisible()
+        } else {
+            assertAlarmScreenNotVisible()
+        }
+    }
+
+    private fun applyAlarmSetting(alarm: AlarmSetting) {
+        when (alarm) {
+            AlarmSetting.ENABLED -> enableBatteryAlarm()
+            AlarmSetting.DISABLED -> disableBatteryAlarm()
+        }
+    }
+
+    private fun applyAppLifecycle(lifecycle: AppLifecycle) {
+        when (lifecycle) {
+            AppLifecycle.FOREGROUND -> Unit
+            AppLifecycle.BACKGROUND -> {
+                device.pressHome()
+                waitUntilLauncherVisible()
+            }
+            AppLifecycle.LOCKED_IN_DOZE -> {
+                device.pressHome()
+                waitUntilLauncherVisible()
+                runShell("cmd deviceidle force-idle")
+                runShell("input keyevent KEYCODE_SLEEP")
+            }
+        }
     }
 
     private fun launchApp() {
@@ -131,16 +162,6 @@ class LowBatteryE2eTest {
             "Battery alarm setting did not become disabled",
             device.wait(Until.hasObject(By.text("Battery alarm is disabled")), TIMEOUT_MS),
         )
-    }
-
-    private fun drainBatteryUntilAlarmIsVisible() {
-        triggerSystemBatteryLow()
-        assertAlarmScreenVisible()
-    }
-
-    private fun drainBatteryWithoutExpectingAlarm() {
-        triggerSystemBatteryLow()
-        assertAlarmScreenNotVisible()
     }
 
     private fun triggerSystemBatteryLow() {
@@ -197,5 +218,55 @@ class LowBatteryE2eTest {
     private companion object {
         const val PACKAGE_NAME = "com.example.batteryalarm"
         const val TIMEOUT_MS = 5_000L
+
+        val SCENARIOS = LowBatteryScenarios
     }
+}
+
+private enum class AlarmSetting {
+    ENABLED,
+    DISABLED,
+}
+
+private enum class AppLifecycle {
+    FOREGROUND,
+    BACKGROUND,
+    LOCKED_IN_DOZE,
+}
+
+private data class LowBatteryScenario(
+    val id: String,
+    val alarm: AlarmSetting,
+    val lifecycle: AppLifecycle,
+    val expectAlarmScreen: Boolean,
+)
+
+private object LowBatteryScenarios {
+    val disabledForeground = LowBatteryScenario(
+        id = "disabled_foreground",
+        alarm = AlarmSetting.DISABLED,
+        lifecycle = AppLifecycle.FOREGROUND,
+        expectAlarmScreen = false,
+    )
+
+    val enabledForeground = LowBatteryScenario(
+        id = "enabled_foreground",
+        alarm = AlarmSetting.ENABLED,
+        lifecycle = AppLifecycle.FOREGROUND,
+        expectAlarmScreen = true,
+    )
+
+    val enabledBackground = LowBatteryScenario(
+        id = "enabled_background",
+        alarm = AlarmSetting.ENABLED,
+        lifecycle = AppLifecycle.BACKGROUND,
+        expectAlarmScreen = true,
+    )
+
+    val enabledLockedDoze = LowBatteryScenario(
+        id = "enabled_locked_doze",
+        alarm = AlarmSetting.ENABLED,
+        lifecycle = AppLifecycle.LOCKED_IN_DOZE,
+        expectAlarmScreen = true,
+    )
 }
