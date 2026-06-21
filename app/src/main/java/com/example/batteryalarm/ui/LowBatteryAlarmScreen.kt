@@ -10,25 +10,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.batteryalarm.R
 import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
 
 @Composable
 fun LowBatteryAlarmScreen(
-    onStopAlarmClick: () -> Unit,
+    onDismissAlarmClick: () -> Unit,
 ) {
     RedWarningTriangle(modifier = Modifier.size(96.dp))
     Text(
-        text = "Low battery alarm",
+        text = stringResource(R.string.alarm_notification_title),
         style = MaterialTheme.typography.headlineSmall,
     )
     Text(
-        text = "Battery is below the set threshold.",
+        text = stringResource(R.string.alarm_notification_body),
         style = MaterialTheme.typography.bodyLarge,
     )
-    Button(onClick = onStopAlarmClick) {
-        Text(text = "Stop")
+    Button(onClick = onDismissAlarmClick) {
+        Text(text = stringResource(R.string.dismiss))
     }
 }
 
@@ -62,6 +64,6 @@ private fun RedWarningTriangle(
 @Composable
 private fun LowBatteryAlarmScreenPreview() {
     BatteryAlarmTheme {
-        LowBatteryAlarmScreen(onStopAlarmClick = {})
+        LowBatteryAlarmScreen(onDismissAlarmClick = {})
     }
 }

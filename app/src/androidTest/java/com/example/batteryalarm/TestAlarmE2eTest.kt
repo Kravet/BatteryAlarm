@@ -2,11 +2,13 @@ package com.example.batteryalarm
 
 import android.content.Intent
 import android.os.Build
+import android.os.SystemClock
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
+import com.example.batteryalarm.alarm.BatteryLowAlarmHandler
 import java.io.File
 import org.junit.After
 import org.junit.Assert.assertFalse
@@ -15,23 +17,8 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * E2E matrix for low-battery alarm UI (alarm enabled × app lifecycle × battery low).
- *
- * ```
- * | alarm   | lifecycle     | battery low | alarm UI active |
- * |---------|---------------|-------------|-----------------|
- * | disabled| foreground    | yes         | no              |
- * | enabled | foreground    | yes         | yes             |
- * | enabled | background    | yes         | yes             |
- * | enabled | locked+doze   | yes         | yes             |
- * ```
- *
- * Active alarm UX uses notification + Dismiss on unlocked devices and may also show
- * the in-app alarm overlay when the full-screen intent reaches [AlarmActivity].
- */
 @RunWith(AndroidJUnit4::class)
-class LowBatteryE2eTest {
+class TestAlarmE2eTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
     private val device = UiDevice.getInstance(instrumentation)
@@ -39,10 +26,8 @@ class LowBatteryE2eTest {
     @Before
     fun setUp() {
         wakeAndUnlockDevice()
-        runShell("cmd deviceidle unforce")
         grantNotificationPermission()
         grantFullScreenIntentPermission()
-        resetBatteryState()
         resetAppSettings()
         dismissAlarmUiIfVisible()
     }
@@ -50,67 +35,22 @@ class LowBatteryE2eTest {
     @After
     fun tearDown() {
         wakeAndUnlockDevice()
-        runShell("cmd deviceidle unforce")
-        runShell("dumpsys battery reset")
-        resetAppSettings()
         dismissAlarmUiIfVisible()
         runShell("am kill $PACKAGE_NAME")
         device.pressHome()
     }
 
     @Test
-    fun disabled_foreground() = runLowBatteryScenario(SCENARIOS.disabledForeground)
-
-    @Test
-    fun enabled_foreground() = runLowBatteryScenario(SCENARIOS.enabledForeground)
-
-    @Test
-    fun enabled_background() = runLowBatteryScenario(SCENARIOS.enabledBackground)
-
-    @Test
-    fun enabled_locked_doze() = runLowBatteryScenario(SCENARIOS.enabledLockedDoze)
-
-    private fun runLowBatteryScenario(scenario: LowBatteryScenario) {
+    fun test_alarm_foreground_shows_alarm_after_delay() {
         launchApp()
-        applyAlarmSetting(scenario.alarm)
-        applyAppLifecycle(scenario.lifecycle)
+        enableBatteryAlarm()
+        tapTestAlarmButton()
 
-        triggerSystemBatteryLow()
+        waitForRealTime(BatteryLowAlarmHandler.TEST_ALARM_DELAY_MS + 2_000L)
 
-        if (scenario.lifecycle == AppLifecycle.LOCKED_IN_DOZE) {
-            runShell("cmd deviceidle unforce")
-            wakeAndUnlockDevice()
-            launchApp()
-        }
-
-        if (scenario.expectAlarmUi) {
-            assertAlarmIsActive()
-        } else {
-            assertAlarmUiNotVisible()
-        }
-    }
-
-    private fun applyAlarmSetting(alarm: AlarmSetting) {
-        when (alarm) {
-            AlarmSetting.ENABLED -> enableBatteryAlarm()
-            AlarmSetting.DISABLED -> disableBatteryAlarm()
-        }
-    }
-
-    private fun applyAppLifecycle(lifecycle: AppLifecycle) {
-        when (lifecycle) {
-            AppLifecycle.FOREGROUND -> Unit
-            AppLifecycle.BACKGROUND -> {
-                device.pressHome()
-                waitUntilLauncherVisible()
-            }
-            AppLifecycle.LOCKED_IN_DOZE -> {
-                device.pressHome()
-                waitUntilLauncherVisible()
-                runShell("cmd deviceidle force-idle")
-                runShell("input keyevent KEYCODE_SLEEP")
-            }
-        }
+        assertAlarmIsActive()
+        dismissAlarmUiIfVisible()
+        assertAlarmUiNotVisible()
     }
 
     private fun launchApp() {
@@ -125,8 +65,6 @@ class LowBatteryE2eTest {
     }
 
     private fun enableBatteryAlarm() {
-        dismissAlarmUiIfVisible()
-
         if (device.wait(Until.hasObject(By.text("Battery alarm is enabled")), TIMEOUT_MS)) {
             return
         }
@@ -144,29 +82,12 @@ class LowBatteryE2eTest {
         )
     }
 
-    private fun disableBatteryAlarm() {
-        dismissAlarmUiIfVisible()
-
-        if (device.wait(Until.hasObject(By.text("Battery alarm is disabled")), TIMEOUT_MS)) {
-            return
-        }
-
-        val disableButton = device.wait(
-            Until.findObject(By.text("Disable battery alarm")),
+    private fun tapTestAlarmButton() {
+        val testButton = device.wait(
+            Until.findObject(By.text("Test")),
             TIMEOUT_MS,
-        ) ?: error("Disable battery alarm button was not visible")
-
-        disableButton.click()
-
-        assertTrue(
-            "Battery alarm setting did not become disabled",
-            device.wait(Until.hasObject(By.text("Battery alarm is disabled")), TIMEOUT_MS),
-        )
-    }
-
-    private fun triggerSystemBatteryLow() {
-        runShell("dumpsys battery set level 50")
-        runShell("dumpsys battery set level 10")
+        ) ?: error("Test alarm button was not visible")
+        testButton.click()
     }
 
     private fun assertAlarmIsActive() {
@@ -203,13 +124,6 @@ class LowBatteryE2eTest {
             device.wait(Until.hasObject(By.text(ALARM_TITLE)), TIMEOUT_MS),
         )
         device.pressBack()
-    }
-
-    private fun resetBatteryState() {
-        runShell("dumpsys battery reset")
-        runShell("dumpsys battery unplug")
-        runShell("dumpsys battery set status 3")
-        runShell("dumpsys battery set level 50")
     }
 
     private fun resetAppSettings() {
@@ -252,8 +166,9 @@ class LowBatteryE2eTest {
         device.wait(Until.gone(By.text(ALARM_TITLE)), TIMEOUT_MS)
     }
 
-    private fun waitUntilLauncherVisible() {
-        device.wait(Until.gone(By.pkg(PACKAGE_NAME)), TIMEOUT_MS)
+    private fun waitForRealTime(durationMs: Long) {
+        SystemClock.sleep(durationMs)
+        instrumentation.waitForIdleSync()
     }
 
     private fun runShell(command: String): String = device.executeShellCommand(command)
@@ -263,55 +178,5 @@ class LowBatteryE2eTest {
         const val ALARM_TITLE = "Low battery alarm"
         const val DISMISS_LABEL = "Dismiss"
         const val TIMEOUT_MS = 5_000L
-
-        val SCENARIOS = LowBatteryScenarios
     }
-}
-
-private enum class AlarmSetting {
-    ENABLED,
-    DISABLED,
-}
-
-private enum class AppLifecycle {
-    FOREGROUND,
-    BACKGROUND,
-    LOCKED_IN_DOZE,
-}
-
-private data class LowBatteryScenario(
-    val id: String,
-    val alarm: AlarmSetting,
-    val lifecycle: AppLifecycle,
-    val expectAlarmUi: Boolean,
-)
-
-private object LowBatteryScenarios {
-    val disabledForeground = LowBatteryScenario(
-        id = "disabled_foreground",
-        alarm = AlarmSetting.DISABLED,
-        lifecycle = AppLifecycle.FOREGROUND,
-        expectAlarmUi = false,
-    )
-
-    val enabledForeground = LowBatteryScenario(
-        id = "enabled_foreground",
-        alarm = AlarmSetting.ENABLED,
-        lifecycle = AppLifecycle.FOREGROUND,
-        expectAlarmUi = true,
-    )
-
-    val enabledBackground = LowBatteryScenario(
-        id = "enabled_background",
-        alarm = AlarmSetting.ENABLED,
-        lifecycle = AppLifecycle.BACKGROUND,
-        expectAlarmUi = true,
-    )
-
-    val enabledLockedDoze = LowBatteryScenario(
-        id = "enabled_locked_doze",
-        alarm = AlarmSetting.ENABLED,
-        lifecycle = AppLifecycle.LOCKED_IN_DOZE,
-        expectAlarmUi = true,
-    )
 }

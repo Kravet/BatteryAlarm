@@ -4,8 +4,12 @@
 
 # TODO
 
-- [Alarm Intent] Replace plain `startActivity()` with the official alarm-clock flow: `AlarmManager.setAlarmClock()` + `AlarmClockInfo` show intent, not just launching `MainActivity` with a custom action. See [AlarmManager.setAlarmClock](https://developer.android.com/reference/android/app/AlarmManager#setAlarmClock(android.app.AlarmManager.AlarmClockInfo,%20android.app.PendingIntent)).
-- [Alarm Intent] Goal: system treats the event as a user-facing alarm (Doze exemption, status-bar alarm indicator) instead of a generic activity start.
+- [Alarm Intent] Replace plain `startActivity()` with a high-priority notification + full-screen intent in `AndroidAlarmNotifier`, so the alarm UI can appear reliably over the lock screen. Add `USE_FULL_SCREEN_INTENT`, `showWhenLocked`, and `turnScreenOn` where needed.
+- What is the problem?
+- Off docs https://developer.android.com/develop/ui/compose/notifications/create-notification#urgent-message
+- Present expected behavior
+
+- [Alarm Intent] Optional later: use `AlarmManager.setAlarmClock()` + `AlarmClockInfo` show intent for stronger Doze delivery and the status-bar alarm indicator. This complements FSI; it does not replace it.
 - [Charging Behavior] Stop the alarm immediately when the charging cable is connected.
 - [Charging Behavior] Stop the alarm only when real charging starts, once the app has a reliable way to detect that state.
 - [Charging Behavior] When alarm monitoring is enabled and the battery is already critically low, show the alarm immediately because the low-battery receiver may not fire again.

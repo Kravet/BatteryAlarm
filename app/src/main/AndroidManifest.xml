@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".BatteryAlarmApp"
         android:allowBackup="true"
@@ -21,6 +24,10 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".alarm.AlarmDismissReceiver"
+            android:exported="false" />
+
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
@@ -33,6 +40,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.AlarmActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.BatteryAlarm" />
     </application>
 
 </manifest>

@@ -22,7 +22,6 @@ fun MainScreen(
     snackbarHostState: SnackbarHostState,
     onAlarmEnabledChange: (Boolean) -> Unit,
     onTestAlarmClick: () -> Unit,
-    onStopAlarmClick: () -> Unit,
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -41,15 +40,11 @@ fun MainScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                if (uiState.isAlarmScreenVisible) {
-                    LowBatteryAlarmScreen(onStopAlarmClick = onStopAlarmClick)
-                } else {
-                    MainSettingsContent(
-                        uiState = uiState,
-                        onAlarmEnabledChange = onAlarmEnabledChange,
-                        onTestAlarmClick = onTestAlarmClick,
-                    )
-                }
+                MainSettingsContent(
+                    uiState = uiState,
+                    onAlarmEnabledChange = onAlarmEnabledChange,
+                    onTestAlarmClick = onTestAlarmClick,
+                )
             }
         }
     }
@@ -64,24 +59,6 @@ private fun MainScreenPreview() {
             snackbarHostState = remember { SnackbarHostState() },
             onAlarmEnabledChange = {},
             onTestAlarmClick = {},
-            onStopAlarmClick = {},
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun MainScreenAlarmPreview() {
-    BatteryAlarmTheme {
-        MainScreen(
-            uiState = MainUiState(
-                isAlarmEnabled = true,
-                isAlarmScreenVisible = true,
-            ),
-            snackbarHostState = remember { SnackbarHostState() },
-            onAlarmEnabledChange = {},
-            onTestAlarmClick = {},
-            onStopAlarmClick = {},
         )
     }
 }

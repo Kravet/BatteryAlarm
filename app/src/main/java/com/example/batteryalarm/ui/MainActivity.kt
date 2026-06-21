@@ -1,19 +1,27 @@
 package com.example.batteryalarm.ui
 
-import android.content.Context
-import android.content.Intent
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import com.example.batteryalarm.R
 import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -26,6 +34,22 @@ class MainActivity : ComponentActivity() {
             BatteryAlarmTheme {
                 val uiState by viewModel.uiState.collectAsState()
                 val snackbarHostState = remember { SnackbarHostState() }
+                val context = LocalContext.current
+                val coroutineScope = rememberCoroutineScope()
+
+                val notificationPermissionLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestPermission(),
+                ) { granted ->
+                    if (granted) {
+                        viewModel.onAlarmEnabledChange(true)
+                    } else {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = context.getString(R.string.notification_permission_denied),
+                            )
+                        }
+                    }
+                }
 
                 LaunchedEffect(viewModel) {
                     viewModel.sideEffects.collect { sideEffect ->
@@ -41,10 +65,6 @@ class MainActivity : ComponentActivity() {
                                     message = "Could not start test alarm. Please try again.",
                                 )
                             }
-
-                            MainSideEffect.LaunchAlarmScreen -> {
-                                startActivity(createAlarmIntent(this@MainActivity))
-                            }
                         }
                     }
                 }
@@ -52,37 +72,27 @@ class MainActivity : ComponentActivity() {
                 MainScreen(
                     uiState = uiState,
                     snackbarHostState = snackbarHostState,
-                    onAlarmEnabledChange = viewModel::onAlarmEnabledChange,
+                    onAlarmEnabledChange = { enabled ->
+                        if (!enabled) {
+                            viewModel.onAlarmEnabledChange(false)
+                            return@MainScreen
+                        }
+
+                        if (
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.POST_NOTIFICATIONS,
+                            ) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            viewModel.onAlarmEnabledChange(true)
+                        }
+                    },
                     onTestAlarmClick = viewModel::onTestAlarmClick,
-                    onStopAlarmClick = viewModel::onStopAlarmClick,
                 )
             }
         }
-        viewModel.onAlarmIntentReceived(isAlarmIntent(intent))
-    }
-
-    override fun onResume() {
-        super.onResume()
-        viewModel.syncAlarmScreenVisibility()
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        viewModel.onAlarmIntentReceived(isAlarmIntent(intent))
-    }
-
-    companion object {
-        private const val ACTION_SHOW_ALARM = "com.example.batteryalarm.action.SHOW_ALARM"
-
-        fun createAlarmIntent(context: Context): Intent = Intent(context, MainActivity::class.java)
-            .setAction(ACTION_SHOW_ALARM)
-            .addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP,
-            )
-
-        fun isAlarmIntent(intent: Intent?): Boolean = intent?.action == ACTION_SHOW_ALARM
     }
 }

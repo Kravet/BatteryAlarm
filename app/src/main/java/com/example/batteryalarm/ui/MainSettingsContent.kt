@@ -32,7 +32,10 @@ fun MainSettingsContent(
             },
         )
     }
-    Button(onClick = onTestAlarmClick) {
+    Button(
+        onClick = onTestAlarmClick,
+        enabled = !uiState.isTestAlarmPending,
+    ) {
         Text(text = "Test")
     }
 }

@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Battery Alarm</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="alarm_notification_title">Low battery alarm</string>
+    <string name="alarm_notification_body">Battery is below the set threshold.</string>
+    <string name="notification_permission_denied">Notifications are required for battery alarms. Enable them in Settings to use this feature.</string>
 </resources>
