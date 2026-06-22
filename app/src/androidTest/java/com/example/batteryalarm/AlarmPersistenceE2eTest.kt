@@ -1,5 +1,6 @@
 package com.example.batteryalarm
 
+import android.os.SystemClock
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
@@ -33,16 +34,20 @@ class AlarmPersistenceE2eTest {
             instrumentation = instrumentation,
         )
         actions.prepareCleanTestState(resetBattery = true)
-        actions.dismissAlarmUiIfVisible()
+        actions.runShell("cmd deviceidle unforce")
+        actions.establishDisabledBaseline()
     }
 
     @After
     fun tearDown() {
-        actions.wakeAndUnlock()
-        actions.runShell("dumpsys battery reset")
-        actions.resetAppSettings()
-        actions.dismissAlarmUiIfVisible()
-        actions.killAppProcess()
+        runCatching {
+            actions.wakeAndUnlock()
+            actions.runShell("cmd deviceidle unforce")
+            actions.runShell("dumpsys battery reset")
+            actions.dismissAlarmUiIfVisible()
+            actions.launchApp()
+            actions.disableBatteryAlarm()
+        }
         device.pressHome()
     }
 
@@ -64,10 +69,10 @@ class AlarmPersistenceE2eTest {
     }
 
     @Test
-    @Ignore("Requires device reboot and instrumentation reconnect")
     fun enabled_after_process_kill_monitoring_restarts_and_reacts_to_battery_low() {
         actions.launchApp()
         actions.enableBatteryAlarm()
+        E2eAlarmLog.awaitMonitoringStarted(actions::runShell)
         actions.assertMonitoringServiceRunning()
 
         actions.backgroundApp()
@@ -75,7 +80,8 @@ class AlarmPersistenceE2eTest {
         actions.waitForMonitoringServiceRestart()
 
         triggerBatteryLowWithoutOpeningApp()
-        actions.waitForRealTime(3_000L)
+        E2eAlarmLog.awaitBatteryLowHandled(actions::runShell)
+        E2eAlarmLog.awaitSystemAlarmStarted(actions::runShell)
 
         actions.assertMonitoringServiceRunning()
         actions.wakeAndUnlock()
@@ -83,7 +89,11 @@ class AlarmPersistenceE2eTest {
     }
 
     private fun triggerBatteryLowWithoutOpeningApp() {
-        actions.triggerSystemBatteryLow()
+        actions.runShell("dumpsys battery unplug")
+        actions.runShell("dumpsys battery set status 3")
+        actions.runShell("dumpsys battery set level 20")
+        SystemClock.sleep(500)
+        actions.runShell("dumpsys battery set level 5")
     }
 
     private fun rebootDeviceAndWaitForBootComplete() {
