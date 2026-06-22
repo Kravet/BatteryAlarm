@@ -1,17 +1,19 @@
 package com.example.batteryalarm.di
 
 import android.content.Context
-import com.example.batteryalarm.alarm.AndroidBatteryLowReceiverRegistrar
 import com.example.batteryalarm.alarm.AndroidAlarmNotifier
 import com.example.batteryalarm.alarm.AndroidAlarmSoundPlayer
 import com.example.batteryalarm.alarm.AndroidAlarmVibrator
-import com.example.batteryalarm.alarm.BatteryLowReceiverRegistrar
+import com.example.batteryalarm.alarm.AndroidBatteryLowMonitoring
 import com.example.batteryalarm.domain.AlarmController
 import com.example.batteryalarm.domain.AlarmNotifier
+import com.example.batteryalarm.domain.AlarmSettingsCoordinator
 import com.example.batteryalarm.domain.AlarmSettingsRepository
 import com.example.batteryalarm.domain.AlarmSoundPlayer
 import com.example.batteryalarm.domain.AlarmVibrator
+import com.example.batteryalarm.domain.BatteryLowMonitoring
 import com.example.batteryalarm.domain.DefaultAlarmController
+import com.example.batteryalarm.domain.DefaultAlarmSettingsCoordinator
 import com.example.batteryalarm.settings.AndroidAlarmSettingsRepository
 import dagger.Module
 import dagger.Provides
@@ -39,9 +41,23 @@ object AlarmModule {
 
     @Provides
     @Singleton
-    fun provideBatteryLowReceiverRegistrar(
-        registrar: AndroidBatteryLowReceiverRegistrar,
-    ): BatteryLowReceiverRegistrar = registrar
+    fun provideBatteryLowMonitoring(
+        monitoring: AndroidBatteryLowMonitoring,
+    ): BatteryLowMonitoring = monitoring
+
+    @Provides
+    @Singleton
+    fun provideAlarmSettingsCoordinator(
+        alarmSettingsRepository: AlarmSettingsRepository,
+        batteryLowMonitoring: BatteryLowMonitoring,
+        alarmController: AlarmController,
+        @ApplicationScope scope: CoroutineScope,
+    ): AlarmSettingsCoordinator = DefaultAlarmSettingsCoordinator(
+        alarmSettingsRepository = alarmSettingsRepository,
+        batteryLowMonitoring = batteryLowMonitoring,
+        alarmController = alarmController,
+        scope = scope,
+    )
 
     @Provides
     @Singleton

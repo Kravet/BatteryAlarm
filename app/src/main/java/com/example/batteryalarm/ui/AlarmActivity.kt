@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -27,15 +28,18 @@ class AlarmActivity : ComponentActivity() {
         configureLockScreenFlags()
 
         if (shouldFinishImmediately(intent)) {
+            Log.d(TAG, "onCreate: finishing, reason=finish_action")
             finish()
             return
         }
 
         if (!viewModel.isAlarmActive()) {
+            Log.d(TAG, "onCreate: finishing, reason=alarm_inactive")
             finish()
             return
         }
 
+        Log.d(TAG, "onCreate: showing alarm overlay")
         enableEdgeToEdge()
         setContent {
             BatteryAlarmTheme {
@@ -79,6 +83,7 @@ class AlarmActivity : ComponentActivity() {
         intent?.action == ACTION_FINISH
 
     companion object {
+        private const val TAG = "AlarmActivity"
         private const val ACTION_FINISH = "com.example.batteryalarm.action.FINISH_ALARM"
 
         fun createAlarmIntent(context: Context): Intent = Intent(context, AlarmActivity::class.java)

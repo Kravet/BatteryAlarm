@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.batteryalarm.R
 import com.example.batteryalarm.domain.AlarmNotifier
@@ -56,6 +57,7 @@ class AndroidAlarmNotifier(
             .build()
 
         notificationManager.notify(ALARM_NOTIFICATION_ID, notification)
+        Log.d(TAG, "Posted alarm notification, reason=$reason")
     }
 
     override fun clearAlarm() {
@@ -89,6 +91,7 @@ class AndroidAlarmNotifier(
     }
 
     companion object {
+        private const val TAG = "AndroidAlarmNotifier"
         const val CHANNEL_ID = "battery_alarm"
         const val ALARM_NOTIFICATION_ID = 1001
 

@@ -1,7 +1,8 @@
 package com.example.batteryalarm
 
 import android.app.Application
-import com.example.batteryalarm.alarm.AlarmSettingsCoordinator
+import android.util.Log
+import com.example.batteryalarm.domain.AlarmSettingsCoordinator
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -12,6 +13,12 @@ class BatteryAlarmApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        Log.d(TAG, "Application onCreate")
+        Log.d(TAG, "Starting alarm settings coordinator")
         alarmSettingsCoordinator.start()
+    }
+
+    private companion object {
+        const val TAG = "BatteryAlarmApp"
     }
 }
