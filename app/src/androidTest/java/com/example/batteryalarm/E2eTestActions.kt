@@ -273,9 +273,21 @@ class E2eTestActions(
 
     private fun isAlarmNotificationVisible(): Boolean {
         device.openNotification()
-        val titleVisible = device.wait(Until.hasObject(By.text(ALARM_TITLE)), TIMEOUT_MS)
-        val dismissVisible = device.findObject(By.text(DISMISS_LABEL)) != null
+        val titleObject = device.wait(Until.findObject(By.text(ALARM_TITLE)), TIMEOUT_MS)
+        if (titleObject == null) {
+            device.pressBack()
+            return false
+        }
+
+        titleObject.click()
+        if (device.wait(Until.hasObject(By.text(DISMISS_LABEL)), TIMEOUT_MS)) {
+            return true
+        }
+
         device.pressBack()
-        return titleVisible && dismissVisible
+        device.openNotification()
+        val dismissOnNotification = device.findObject(By.text(DISMISS_LABEL)) != null
+        device.pressBack()
+        return dismissOnNotification
     }
 }

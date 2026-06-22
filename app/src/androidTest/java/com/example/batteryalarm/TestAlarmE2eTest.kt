@@ -3,7 +3,6 @@ package com.example.batteryalarm
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
-import com.example.batteryalarm.alarm.BatteryLowAlarmHandler
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -28,8 +27,10 @@ class TestAlarmE2eTest {
 
     @After
     fun tearDown() {
-        actions.wakeAndUnlock()
-        actions.dismissAlarmUiIfVisible()
+        runCatching {
+            actions.wakeAndUnlock()
+            actions.dismissAlarmUiIfVisible()
+        }
         device.pressHome()
     }
 
@@ -37,10 +38,12 @@ class TestAlarmE2eTest {
     fun test_alarm_foreground_shows_alarm_after_delay() {
         actions.launchApp()
         actions.enableBatteryAlarm()
+        E2eAlarmLog.awaitMonitoringStarted(actions::runShell)
+
         actions.tapTestAlarmButton()
+        E2eAlarmLog.awaitTestAlarmStarted(actions::runShell)
 
-        actions.waitForRealTime(BatteryLowAlarmHandler.TEST_ALARM_DELAY_MS + 2_000L)
-
+        actions.wakeAndUnlock()
         actions.assertAlarmIsActive()
         actions.dismissAlarmUiIfVisible()
         actions.assertAlarmUiNotVisible()
