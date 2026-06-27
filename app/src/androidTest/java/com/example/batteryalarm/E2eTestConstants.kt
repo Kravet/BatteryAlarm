@@ -12,4 +12,5 @@ object E2eTestConstants {
     const val TIMEOUT_MS = 5_000L
     const val ALARM_ASSERT_TIMEOUT_MS = 15_000L
     const val MONITORING_RESTART_TIMEOUT_MS = 15_000L
+    const val TOGGLE_SETTLE_TIMEOUT_MS = 15_000L
 }

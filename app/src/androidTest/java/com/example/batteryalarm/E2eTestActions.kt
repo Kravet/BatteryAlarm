@@ -18,7 +18,11 @@ import com.example.batteryalarm.E2eTestConstants.ENABLED_LABEL
 import com.example.batteryalarm.E2eTestConstants.PACKAGE_NAME
 import com.example.batteryalarm.E2eTestConstants.TEST_BUTTON
 import com.example.batteryalarm.E2eTestConstants.TIMEOUT_MS
+import com.example.batteryalarm.E2eTestConstants.TOGGLE_SETTLE_TIMEOUT_MS
+import com.example.batteryalarm.settings.AndroidAlarmSettingsRepository
 import java.io.File
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 
@@ -131,6 +135,68 @@ class E2eTestActions(
             TIMEOUT_MS,
         ) ?: error("Test alarm button was not visible")
         testButton.click()
+    }
+
+    fun tapAlarmToggleRapidly(count: Int) {
+        require(count > 0) { "Tap count must be positive" }
+        waitForMainScreen()
+        val toggleBounds = findAlarmToggleButton().visibleBounds
+        val centerX = toggleBounds.centerX()
+        val centerY = toggleBounds.centerY()
+        repeat(count) {
+            device.click(centerX, centerY)
+        }
+    }
+
+    fun readPersistedAlarmEnabled(): Boolean = runBlocking {
+        AndroidAlarmSettingsRepository(context).isAlarmEnabled()
+    }
+
+    fun isUiAlarmEnabled(): Boolean {
+        val enabledVisible = device.hasObject(By.text(ENABLED_LABEL))
+        val disabledVisible = device.hasObject(By.text(DISABLED_LABEL))
+        return when {
+            enabledVisible && disabledVisible ->
+                error("Both enabled and disabled status labels are visible")
+            enabledVisible -> true
+            disabledVisible -> false
+            else -> error("Alarm status label was not visible")
+        }
+    }
+
+    fun waitForAlarmToggleSettled(expectedEnabled: Boolean, timeoutMs: Long = TOGGLE_SETTLE_TIMEOUT_MS) {
+        val deadline = SystemClock.uptimeMillis() + timeoutMs
+        while (SystemClock.uptimeMillis() < deadline) {
+            val persisted = readPersistedAlarmEnabled()
+            val uiEnabled = runCatching { isUiAlarmEnabled() }.getOrNull()
+            val serviceRunning = DeviceTestHelpers.isBatteryMonitoringServiceRunning(
+                packageName = PACKAGE_NAME,
+                runShell = ::runShell,
+            )
+            if (
+                persisted == expectedEnabled &&
+                uiEnabled == expectedEnabled &&
+                serviceRunning == expectedEnabled
+            ) {
+                return
+            }
+            SystemClock.sleep(50)
+            instrumentation.waitForIdleSync()
+        }
+        assertAlarmEnabledConsistent(expectedEnabled)
+    }
+
+    fun assertAlarmEnabledConsistent(expectedEnabled: Boolean) {
+        val uiEnabled = isUiAlarmEnabled()
+        val persistedEnabled = readPersistedAlarmEnabled()
+        val serviceRunning = DeviceTestHelpers.isBatteryMonitoringServiceRunning(
+            packageName = PACKAGE_NAME,
+            runShell = ::runShell,
+        )
+
+        assertEquals("UI alarm enabled state", expectedEnabled, uiEnabled)
+        assertEquals("Persisted alarm enabled state", expectedEnabled, persistedEnabled)
+        assertEquals("Monitoring service running state", expectedEnabled, serviceRunning)
     }
 
     fun backgroundApp() {
@@ -250,6 +316,11 @@ class E2eTestActions(
         SystemClock.sleep(durationMs)
         instrumentation.waitForIdleSync()
     }
+
+    private fun findAlarmToggleButton() =
+        device.findObject(By.text(ENABLE_BUTTON))
+            ?: device.findObject(By.text(DISABLE_BUTTON))
+            ?: error("Alarm toggle button was not visible")
 
     private fun waitForMainScreen() {
         val deadline = SystemClock.uptimeMillis() + TIMEOUT_MS
