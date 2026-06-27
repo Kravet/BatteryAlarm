@@ -198,6 +198,10 @@ private class FakeAlarmSettingsRepository(
     override suspend fun setAlarmEnabled(enabled: Boolean) {
         alarmEnabledFlow.value = enabled
     }
+
+    override suspend fun toggleAlarmEnabled() {
+        setAlarmEnabled(!isAlarmEnabled())
+    }
 }
 
 private class FakeAlarmSoundPlayer : AlarmSoundPlayer {

@@ -32,6 +32,13 @@ class AndroidAlarmSettingsRepository(
         }
     }
 
+    override suspend fun toggleAlarmEnabled() {
+        dataStore.edit { preferences ->
+            val current = preferences[KEY_ALARM_ENABLED] ?: false
+            preferences[KEY_ALARM_ENABLED] = !current
+        }
+    }
+
     private companion object {
         val KEY_ALARM_ENABLED = booleanPreferencesKey("alarm_enabled")
     }

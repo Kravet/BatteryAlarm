@@ -8,4 +8,6 @@ interface AlarmSettingsRepository {
     suspend fun isAlarmEnabled(): Boolean
 
     suspend fun setAlarmEnabled(enabled: Boolean)
+
+    suspend fun toggleAlarmEnabled()
 }

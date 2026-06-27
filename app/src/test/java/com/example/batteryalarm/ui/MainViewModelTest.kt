@@ -225,6 +225,10 @@ private class FakeAlarmSettingsRepository(
         exceptionOnSet?.let { throw it }
         alarmEnabledFlow.value = valueSavedAfterSet ?: enabled
     }
+
+    override suspend fun toggleAlarmEnabled() {
+        setAlarmEnabled(!isAlarmEnabled())
+    }
 }
 
 private class FakeAlarmController(

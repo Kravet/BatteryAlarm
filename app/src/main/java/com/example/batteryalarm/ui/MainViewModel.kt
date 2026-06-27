@@ -50,8 +50,7 @@ class MainViewModel @Inject constructor(
     fun onAlarmToggleClick() {
         viewModelScope.launch {
             try {
-                val current = alarmSettingsRepository.isAlarmEnabled()
-                alarmSettingsRepository.setAlarmEnabled(!current)
+                alarmSettingsRepository.toggleAlarmEnabled()
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {

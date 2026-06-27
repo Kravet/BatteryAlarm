@@ -107,6 +107,10 @@ private class CoordinatorFakeAlarmSettingsRepository(
     override suspend fun setAlarmEnabled(enabled: Boolean) {
         alarmEnabledFlow.value = enabled
     }
+
+    override suspend fun toggleAlarmEnabled() {
+        setAlarmEnabled(!isAlarmEnabled())
+    }
 }
 
 private class FakeBatteryLowMonitoring : BatteryLowMonitoring {
