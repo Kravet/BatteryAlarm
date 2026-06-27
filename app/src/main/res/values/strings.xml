@@ -6,4 +6,11 @@
     <string name="notification_permission_denied">Notifications are required for battery alarms. Enable them in Settings to use this feature.</string>
     <string name="monitoring_notification_title">Battery monitoring active</string>
     <string name="monitoring_notification_body">Listening for low battery events.</string>
+    <string name="alarm_status_enabled">Battery alarm is <b>enabled</b></string>
+    <string name="alarm_status_disabled">Battery alarm is <b>disabled</b></string>
+    <string name="enable_battery_alarm">Enable battery alarm</string>
+    <string name="disable_battery_alarm">Disable battery alarm</string>
+    <string name="alarm_toggle_on">ON</string>
+    <string name="alarm_toggle_off">OFF</string>
+    <string name="test_the_sound">Test the sound</string>
 </resources>
