@@ -77,6 +77,7 @@ class AndroidAlarmNotifier(
             description = context.getString(R.string.alarm_notification_body)
             setBypassDnd(true)
             lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+            setSound(null, null)
         }
         notificationManager.createNotificationChannel(channel)
     }

@@ -63,7 +63,11 @@ object AlarmModule {
     @Singleton
     fun provideAlarmSoundPlayer(
         @ApplicationContext context: Context,
-    ): AlarmSoundPlayer = AndroidAlarmSoundPlayer(context)
+        @ApplicationScope scope: CoroutineScope,
+    ): AlarmSoundPlayer = AndroidAlarmSoundPlayer(
+        context = context,
+        scope = scope,
+    )
 
     @Provides
     @Singleton
