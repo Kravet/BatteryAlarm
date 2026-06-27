@@ -76,7 +76,7 @@ class BatteryLowAlarmHandler @Inject constructor(
     }
 
     companion object {
-        const val TEST_ALARM_DELAY_MS = 5_000L
+        const val TEST_ALARM_DELAY_MS = 1_000L
         private const val TAG = "BatteryLowAlarmHandler"
     }
 }

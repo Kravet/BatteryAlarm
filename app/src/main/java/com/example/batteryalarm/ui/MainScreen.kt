@@ -20,7 +20,7 @@ import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
 fun MainScreen(
     uiState: MainUiState,
     snackbarHostState: SnackbarHostState,
-    onAlarmEnabledChange: (Boolean) -> Unit,
+    onAlarmToggleClick: () -> Unit,
     onTestAlarmClick: () -> Unit,
 ) {
     Scaffold(
@@ -42,7 +42,7 @@ fun MainScreen(
             ) {
                 MainSettingsContent(
                     uiState = uiState,
-                    onAlarmEnabledChange = onAlarmEnabledChange,
+                    onAlarmToggleClick = onAlarmToggleClick,
                     onTestAlarmClick = onTestAlarmClick,
                 )
             }
@@ -55,9 +55,9 @@ fun MainScreen(
 private fun MainScreenPreview() {
     BatteryAlarmTheme {
         MainScreen(
-            uiState = MainUiState(isAlarmEnabled = false),
+            uiState = MainUiState.from(alarmEnabled = false, isTestAlarmPending = false),
             snackbarHostState = remember { SnackbarHostState() },
-            onAlarmEnabledChange = {},
+            onAlarmToggleClick = {},
             onTestAlarmClick = {},
         )
     }

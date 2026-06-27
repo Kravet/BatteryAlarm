@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
                     contract = ActivityResultContracts.RequestPermission(),
                 ) { granted ->
                     if (granted) {
-                        viewModel.onAlarmEnabledChange(true)
+                        viewModel.onAlarmToggleClick()
                     } else {
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar(
@@ -72,13 +72,9 @@ class MainActivity : ComponentActivity() {
                 MainScreen(
                     uiState = uiState,
                     snackbarHostState = snackbarHostState,
-                    onAlarmEnabledChange = { enabled ->
-                        if (!enabled) {
-                            viewModel.onAlarmEnabledChange(false)
-                            return@MainScreen
-                        }
-
+                    onAlarmToggleClick = {
                         if (
+                            !uiState.isEnabled &&
                             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                             ContextCompat.checkSelfPermission(
                                 context,
@@ -87,7 +83,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         } else {
-                            viewModel.onAlarmEnabledChange(true)
+                            viewModel.onAlarmToggleClick()
                         }
                     },
                     onTestAlarmClick = viewModel::onTestAlarmClick,

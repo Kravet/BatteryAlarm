@@ -62,37 +62,37 @@ class MainViewModelTest {
 
         advanceUntilIdle()
 
-        assertTrue(viewModel.uiState.value.isAlarmEnabled)
+        assertTrue(viewModel.uiState.value.isEnabled)
     }
 
     @Test
-    fun `alarm enabled change stores enabled flag and updates state`() = runTest {
+    fun `when alarm is disabled, then toggle stores enabled flag and updates state`() = runTest {
         val repository = FakeAlarmSettingsRepository(enabled = false)
         val viewModel = createViewModel(alarmSettingsRepository = repository)
 
         advanceUntilIdle()
-        viewModel.onAlarmEnabledChange(true)
+        viewModel.onAlarmToggleClick()
         advanceUntilIdle()
 
         assertTrue(repository.isAlarmEnabled())
-        assertTrue(viewModel.uiState.value.isAlarmEnabled)
+        assertTrue(viewModel.uiState.value.isEnabled)
     }
 
     @Test
-    fun `alarm disabled change stores disabled flag and updates state`() = runTest {
+    fun `when alarm is enabled, then toggle stores disabled flag and updates state`() = runTest {
         val repository = FakeAlarmSettingsRepository(enabled = true)
         val viewModel = createViewModel(alarmSettingsRepository = repository)
 
         advanceUntilIdle()
-        viewModel.onAlarmEnabledChange(false)
+        viewModel.onAlarmToggleClick()
         advanceUntilIdle()
 
         assertFalse(repository.isAlarmEnabled())
-        assertFalse(viewModel.uiState.value.isAlarmEnabled)
+        assertFalse(viewModel.uiState.value.isEnabled)
     }
 
     @Test
-    fun `alarm enabled change updates state from saved value emitted by repository`() = runTest {
+    fun `when toggle is clicked, then state updates from saved value emitted by repository`() = runTest {
         val repository = FakeAlarmSettingsRepository(
             enabled = false,
             valueSavedAfterSet = false,
@@ -100,15 +100,15 @@ class MainViewModelTest {
         val viewModel = createViewModel(alarmSettingsRepository = repository)
 
         advanceUntilIdle()
-        viewModel.onAlarmEnabledChange(true)
+        viewModel.onAlarmToggleClick()
         advanceUntilIdle()
 
         assertFalse(repository.isAlarmEnabled())
-        assertFalse(viewModel.uiState.value.isAlarmEnabled)
+        assertFalse(viewModel.uiState.value.isEnabled)
     }
 
     @Test
-    fun `alarm enabled change restores persisted state and emits failure side effect when repository throws`() =
+    fun `when toggle save fails, then persisted state is kept and failure side effect is emitted`() =
         runTest {
             val repository = FakeAlarmSettingsRepository(
                 enabled = false,
@@ -123,12 +123,12 @@ class MainViewModelTest {
             }
 
             advanceUntilIdle()
-            viewModel.onAlarmEnabledChange(true)
+            viewModel.onAlarmToggleClick()
             advanceUntilIdle()
 
             collectJob.join()
             assertFalse(repository.isAlarmEnabled())
-            assertFalse(viewModel.uiState.value.isAlarmEnabled)
+            assertFalse(viewModel.uiState.value.isEnabled)
             assertEquals(
                 listOf(MainSideEffect.ShowAlarmSettingsChangeFailed),
                 sideEffects,
@@ -136,7 +136,7 @@ class MainViewModelTest {
         }
 
     @Test
-    fun `alarm enabled change does not handle save cancellation as failure`() = runTest {
+    fun `when toggle save is cancelled, then it is not handled as failure`() = runTest {
         val repository = FakeAlarmSettingsRepository(
             enabled = false,
             exceptionOnSet = CancellationException("Save cancelled"),
@@ -148,10 +148,10 @@ class MainViewModelTest {
         }
 
         advanceUntilIdle()
-        viewModel.onAlarmEnabledChange(true)
+        viewModel.onAlarmToggleClick()
         advanceUntilIdle()
 
-        assertFalse(viewModel.uiState.value.isAlarmEnabled)
+        assertFalse(viewModel.uiState.value.isEnabled)
         assertEquals(emptyList<MainSideEffect>(), sideEffects)
     }
 
@@ -163,7 +163,7 @@ class MainViewModelTest {
 
         advanceUntilIdle()
 
-        assertFalse(viewModel.uiState.value.isAlarmEnabled)
+        assertFalse(viewModel.uiState.value.isEnabled)
     }
 
     @Test
@@ -185,6 +185,26 @@ class MainViewModelTest {
 
         assertFalse(viewModel.uiState.value.isTestAlarmPending)
         assertEquals(listOf(AlarmStartReason.TestAlarmFlow), alarmController.startedReasons)
+    }
+
+    @Test
+    fun `test alarm finish preserves alarm enabled state changed while pending`() = runTest {
+        val repository = FakeAlarmSettingsRepository(enabled = false)
+        val viewModel = createViewModel(alarmSettingsRepository = repository)
+
+        advanceUntilIdle()
+        viewModel.onTestAlarmClick()
+        assertTrue(viewModel.uiState.value.isTestAlarmPending)
+
+        viewModel.onAlarmToggleClick()
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.isEnabled)
+
+        advanceTimeBy(BatteryLowAlarmHandler.TEST_ALARM_DELAY_MS)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isTestAlarmPending)
+        assertTrue(viewModel.uiState.value.isEnabled)
     }
 }
 

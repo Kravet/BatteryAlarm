@@ -1,5 +1,6 @@
 package com.example.batteryalarm.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -22,14 +23,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.core.text.HtmlCompat
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.batteryalarm.R
-import com.example.batteryalarm.ui.theme.AlarmDisableRed
-import com.example.batteryalarm.ui.theme.AlarmEnableGreen
 import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
 import kotlin.math.min
 import kotlin.math.sqrt
 
 private val AlarmToggleButtonSize = 200.dp
+private val EnabledToggleTextOffsetRatio = sqrt(3f) / 12f
 
 private val AlarmDisableTriangleShape = GenericShape { size, _ ->
     val width = size.width
@@ -71,45 +70,34 @@ private val AlarmDisableTriangleShape = GenericShape { size, _ ->
 @Composable
 fun MainSettingsContent(
     uiState: MainUiState,
-    onAlarmEnabledChange: (Boolean) -> Unit,
+    onAlarmToggleClick: () -> Unit,
     onTestAlarmClick: () -> Unit,
 ) {
-    val isAlarmEnabled = uiState.isAlarmEnabled
-    val toggleContentDescription = if (isAlarmEnabled) {
-        stringResource(R.string.disable_battery_alarm)
-    } else {
-        stringResource(R.string.enable_battery_alarm)
-    }
+    val toggleContentDescription = stringResource(uiState.toggleContentDescriptionRes)
 
-    AlarmStatusText(isAlarmEnabled = isAlarmEnabled)
+    AlarmStatusText(statusTextRes = uiState.statusTextRes)
     Button(
-        onClick = {
-            onAlarmEnabledChange(!isAlarmEnabled)
-        },
+        onClick = onAlarmToggleClick,
         modifier = Modifier
             .size(AlarmToggleButtonSize)
             .semantics {
                 contentDescription = toggleContentDescription
             },
-        shape = if (isAlarmEnabled) AlarmDisableTriangleShape else CircleShape,
+        shape = if (uiState.isEnabled) AlarmDisableTriangleShape else CircleShape,
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isAlarmEnabled) AlarmDisableRed else AlarmEnableGreen,
+            containerColor = uiState.toggleButtonColor,
             contentColor = Color.White,
         ),
     ) {
         Text(
             modifier = Modifier.offset(
-                y = if (isAlarmEnabled) {
-                    AlarmToggleButtonSize * (sqrt(3f) / 12f)
+                y = if (uiState.isEnabled) {
+                    AlarmToggleButtonSize * EnabledToggleTextOffsetRatio
                 } else {
                     0.dp
                 },
             ),
-            text = if (isAlarmEnabled) {
-                stringResource(R.string.alarm_toggle_off)
-            } else {
-                stringResource(R.string.alarm_toggle_on)
-            },
+            text = stringResource(uiState.toggleButtonTextRes),
             style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
             textAlign = TextAlign.Center,
         )
@@ -118,19 +106,13 @@ fun MainSettingsContent(
         onClick = onTestAlarmClick,
         enabled = !uiState.isTestAlarmPending,
     ) {
-        Text(text = stringResource(R.string.test_the_sound))
+        Text(text = stringResource(uiState.testAlarmButtonTextRes))
     }
 }
 
 @Composable
-private fun AlarmStatusText(isAlarmEnabled: Boolean) {
-    val statusHtml = stringResource(
-        if (isAlarmEnabled) {
-            R.string.alarm_status_enabled
-        } else {
-            R.string.alarm_status_disabled
-        },
-    )
+private fun AlarmStatusText(@StringRes statusTextRes: Int) {
+    val statusHtml = stringResource(statusTextRes)
     val statusText = remember(statusHtml) {
         buildAnnotatedString {
             append(HtmlCompat.fromHtml(statusHtml, HtmlCompat.FROM_HTML_MODE_LEGACY))
@@ -145,8 +127,8 @@ private fun AlarmStatusText(isAlarmEnabled: Boolean) {
 private fun MainSettingsContentDisabledPreview() {
     BatteryAlarmTheme {
         MainSettingsContent(
-            uiState = MainUiState(isAlarmEnabled = false),
-            onAlarmEnabledChange = {},
+            uiState = MainUiState.from(alarmEnabled = false, isTestAlarmPending = false),
+            onAlarmToggleClick = {},
             onTestAlarmClick = {},
         )
     }
@@ -157,8 +139,8 @@ private fun MainSettingsContentDisabledPreview() {
 private fun MainSettingsContentEnabledPreview() {
     BatteryAlarmTheme {
         MainSettingsContent(
-            uiState = MainUiState(isAlarmEnabled = true),
-            onAlarmEnabledChange = {},
+            uiState = MainUiState.from(alarmEnabled = true, isTestAlarmPending = false),
+            onAlarmToggleClick = {},
             onTestAlarmClick = {},
         )
     }

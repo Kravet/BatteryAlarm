@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -21,7 +22,7 @@ class MainViewModel @Inject constructor(
     private val alarmSettingsRepository: AlarmSettingsRepository,
     private val batteryLowAlarmHandler: BatteryLowAlarmHandler,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(MainUiState())
+    private val _uiState = MutableStateFlow(MainUiState.from(alarmEnabled = false, isTestAlarmPending = false))
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
     private val _sideEffects = MutableSharedFlow<MainSideEffect>(
@@ -38,15 +39,19 @@ class MainViewModel @Inject constructor(
                     }
                 }
                 .collect { alarmEnabled ->
-                    _uiState.value = _uiState.value.copy(isAlarmEnabled = alarmEnabled)
+                    _uiState.value = MainUiState.from(
+                        alarmEnabled = alarmEnabled,
+                        isTestAlarmPending = _uiState.value.isTestAlarmPending,
+                    )
                 }
         }
     }
 
-    fun onAlarmEnabledChange(enabled: Boolean) {
+    fun onAlarmToggleClick() {
         viewModelScope.launch {
             try {
-                alarmSettingsRepository.setAlarmEnabled(enabled)
+                val current = alarmSettingsRepository.isAlarmEnabled()
+                alarmSettingsRepository.setAlarmEnabled(!current)
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
@@ -60,13 +65,13 @@ class MainViewModel @Inject constructor(
             return
         }
 
-        _uiState.value = _uiState.value.copy(isTestAlarmPending = true)
+        _uiState.update { it.copy(isTestAlarmPending = true) }
         batteryLowAlarmHandler.handleTestAlarm(
             onFinished = {
-                _uiState.value = _uiState.value.copy(isTestAlarmPending = false)
+                _uiState.update { it.copy(isTestAlarmPending = false) }
             },
             onFailed = {
-                _uiState.value = _uiState.value.copy(isTestAlarmPending = false)
+                _uiState.update { it.copy(isTestAlarmPending = false) }
                 viewModelScope.launch {
                     _sideEffects.emit(MainSideEffect.ShowTestAlarmStartFailed)
                 }
@@ -74,11 +79,6 @@ class MainViewModel @Inject constructor(
         )
     }
 }
-
-data class MainUiState(
-    val isAlarmEnabled: Boolean = false,
-    val isTestAlarmPending: Boolean = false,
-)
 
 sealed interface MainSideEffect {
     data object ShowAlarmSettingsChangeFailed : MainSideEffect
