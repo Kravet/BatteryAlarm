@@ -52,26 +52,27 @@ class BatteryLowMonitoringService : Service() {
 
     private fun startMonitoring() {
         createChannelIfNeeded()
-        val contentPendingIntent = PendingIntent.getActivity(
-            this,
-            REQUEST_CONTENT,
-            MainActivity.createIntent(this),
-            pendingIntentFlags(),
-        )
+        startForeground(NOTIFICATION_ID, buildMonitoringNotification())
+        registerBatteryEventReceiver()
+        Log.d(TAG, "Battery low monitoring started")
+    }
 
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_alarm_notification)
+    private fun buildMonitoringNotification() =
+        alarmNotificationBuilder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.monitoring_notification_title))
             .setContentText(getString(R.string.monitoring_notification_body))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setSilent(true)
-            .setContentIntent(contentPendingIntent)
+            .setContentIntent(
+                PendingIntent.getActivity(
+                    this,
+                    REQUEST_CONTENT,
+                    MainActivity.createIntent(this),
+                    pendingIntentFlags(),
+                ),
+            )
             .build()
-        startForeground(NOTIFICATION_ID, notification)
-        registerBatteryEventReceiver()
-        Log.d(TAG, "Battery low monitoring started")
-    }
 
     private fun registerBatteryEventReceiver() {
         if (batteryEventReceiver != null) {

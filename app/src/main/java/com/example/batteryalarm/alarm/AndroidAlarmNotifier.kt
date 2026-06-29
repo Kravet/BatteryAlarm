@@ -8,8 +8,10 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.compose.ui.graphics.toArgb
 import com.example.batteryalarm.R
 import com.example.batteryalarm.domain.AlarmNotifier
+import com.example.batteryalarm.ui.theme.BrandRed
 import com.example.batteryalarm.domain.AlarmStartReason
 import com.example.batteryalarm.ui.AlarmActivity
 import com.example.batteryalarm.ui.MainActivity
@@ -47,8 +49,11 @@ class AndroidAlarmNotifier(
             pendingIntentFlags(),
         )
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_alarm_notification)
+        val notification = alarmNotificationBuilder(
+            context,
+            CHANNEL_ID,
+            accentColor = BrandRed.toArgb(),
+        )
             .setContentTitle(context.getString(R.string.alarm_notification_title))
             .setContentText(context.getString(R.string.alarm_notification_body))
             .setPriority(NotificationCompat.PRIORITY_MAX)
