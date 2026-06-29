@@ -2,6 +2,7 @@ package com.example.batteryalarm.alarm
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -13,6 +14,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.batteryalarm.R
+import com.example.batteryalarm.ui.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -50,6 +52,13 @@ class BatteryLowMonitoringService : Service() {
 
     private fun startMonitoring() {
         createChannelIfNeeded()
+        val contentPendingIntent = PendingIntent.getActivity(
+            this,
+            REQUEST_CONTENT,
+            MainActivity.createIntent(this),
+            pendingIntentFlags(),
+        )
+
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_alarm_notification)
             .setContentTitle(getString(R.string.monitoring_notification_title))
@@ -57,6 +66,7 @@ class BatteryLowMonitoringService : Service() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setSilent(true)
+            .setContentIntent(contentPendingIntent)
             .build()
         startForeground(NOTIFICATION_ID, notification)
         registerBatteryEventReceiver()
@@ -127,11 +137,21 @@ class BatteryLowMonitoringService : Service() {
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
+    private fun pendingIntentFlags(): Int {
+        val immutableFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PendingIntent.FLAG_IMMUTABLE
+        } else {
+            0
+        }
+        return PendingIntent.FLAG_UPDATE_CURRENT or immutableFlag
+    }
+
     companion object {
         private const val TAG = "BatteryLowMonitoringSvc"
         const val ACTION_START = "com.example.batteryalarm.action.START_BATTERY_LOW_MONITORING"
         const val CHANNEL_ID = "battery_low_monitoring"
         const val NOTIFICATION_ID = 1002
+        private const val REQUEST_CONTENT = 3001
 
         fun startIntent(context: Context): Intent =
             Intent(context, BatteryLowMonitoringService::class.java).apply {

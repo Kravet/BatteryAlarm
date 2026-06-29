@@ -12,6 +12,7 @@ import com.example.batteryalarm.R
 import com.example.batteryalarm.domain.AlarmNotifier
 import com.example.batteryalarm.domain.AlarmStartReason
 import com.example.batteryalarm.ui.AlarmActivity
+import com.example.batteryalarm.ui.MainActivity
 
 class AndroidAlarmNotifier(
     private val context: Context,
@@ -21,6 +22,14 @@ class AndroidAlarmNotifier(
 
     override fun showAlarmStarted(reason: AlarmStartReason) {
         createChannelIfNeeded()
+
+        val mainIntent = MainActivity.createIntent(context)
+        val contentPendingIntent = PendingIntent.getActivity(
+            context,
+            REQUEST_CONTENT,
+            mainIntent,
+            pendingIntentFlags(),
+        )
 
         val fullScreenIntent = AlarmActivity.createAlarmIntent(context)
         val fullScreenPendingIntent = PendingIntent.getActivity(
@@ -47,7 +56,7 @@ class AndroidAlarmNotifier(
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setAutoCancel(false)
-            .setContentIntent(fullScreenPendingIntent)
+            .setContentIntent(contentPendingIntent)
             .setFullScreenIntent(fullScreenPendingIntent, true)
             .addAction(
                 0,
@@ -96,6 +105,7 @@ class AndroidAlarmNotifier(
         const val CHANNEL_ID = "battery_alarm"
         const val ALARM_NOTIFICATION_ID = 1001
 
+        private const val REQUEST_CONTENT = 2000
         private const val REQUEST_FULL_SCREEN = 2001
         private const val REQUEST_DISMISS = 2002
     }
