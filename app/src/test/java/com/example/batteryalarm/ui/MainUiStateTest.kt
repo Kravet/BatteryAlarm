@@ -1,8 +1,6 @@
 package com.example.batteryalarm.ui
 
 import com.example.batteryalarm.R
-import com.example.batteryalarm.ui.theme.AlarmDisableRed
-import com.example.batteryalarm.ui.theme.AlarmEnableGreen
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -17,11 +15,9 @@ class MainUiStateTest {
         assertEquals(
             MainUiState(
                 isEnabled = true,
-                statusTextRes = R.string.alarm_status_enabled,
-                toggleButtonTextRes = R.string.alarm_toggle_off,
                 toggleContentDescriptionRes = R.string.disable_battery_alarm,
-                toggleButtonColor = AlarmDisableRed,
                 isTestAlarmPending = false,
+                testAlarmSecondsRemaining = null,
             ),
             state,
         )
@@ -37,11 +33,9 @@ class MainUiStateTest {
         assertEquals(
             MainUiState(
                 isEnabled = false,
-                statusTextRes = R.string.alarm_status_disabled,
-                toggleButtonTextRes = R.string.alarm_toggle_on,
                 toggleContentDescriptionRes = R.string.enable_battery_alarm,
-                toggleButtonColor = AlarmEnableGreen,
                 isTestAlarmPending = false,
+                testAlarmSecondsRemaining = null,
             ),
             state,
         )

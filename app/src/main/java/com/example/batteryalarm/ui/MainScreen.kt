@@ -1,7 +1,7 @@
 package com.example.batteryalarm.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
@@ -28,34 +29,45 @@ fun MainScreen(
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },
+        containerColor = Color.White,
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center,
+                .padding(innerPadding)
+                .background(Color.White)
+                .padding(horizontal = 24.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                MainSettingsContent(
-                    uiState = uiState,
-                    onAlarmToggleClick = onAlarmToggleClick,
-                    onTestAlarmClick = onTestAlarmClick,
-                )
-            }
+            MainSettingsContent(
+                uiState = uiState,
+                onAlarmToggleClick = onAlarmToggleClick,
+                onTestAlarmClick = onTestAlarmClick,
+            )
         }
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-private fun MainScreenPreview() {
+private fun MainScreenDisabledPreview() {
     BatteryAlarmTheme {
         MainScreen(
             uiState = MainUiState.from(alarmEnabled = false, isTestAlarmPending = false),
+            snackbarHostState = remember { SnackbarHostState() },
+            onAlarmToggleClick = {},
+            onTestAlarmClick = {},
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun MainScreenEnabledPreview() {
+    BatteryAlarmTheme {
+        MainScreen(
+            uiState = MainUiState.from(alarmEnabled = true, isTestAlarmPending = false),
             snackbarHostState = remember { SnackbarHostState() },
             onAlarmToggleClick = {},
             onTestAlarmClick = {},

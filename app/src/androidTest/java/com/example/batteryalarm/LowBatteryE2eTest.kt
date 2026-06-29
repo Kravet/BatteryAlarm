@@ -118,41 +118,39 @@ class LowBatteryE2eTest {
     }
 
     private fun tapEnableIfNeeded() {
-        if (device.hasObject(By.text(ENABLED_LABEL))) {
+        if (device.hasObject(By.desc(ENABLED_LABEL))) {
             actions.waitForMonitoringService()
             return
         }
 
-        device.wait(Until.findObject(By.text(ENABLE_BUTTON)), TIMEOUT_MS)?.click()
-            ?: error("Enable battery alarm button was not visible")
+        device.wait(Until.findObject(By.desc(ENABLE_BUTTON)), TIMEOUT_MS)?.click()
+            ?: error("Enable battery alarm toggle was not visible")
 
         assertTrue(
             "Battery alarm setting did not become enabled",
-            device.wait(Until.hasObject(By.text(ENABLED_LABEL)), TIMEOUT_MS),
+            device.wait(Until.hasObject(By.desc(ENABLED_LABEL)), TIMEOUT_MS),
         )
         actions.waitForMonitoringService()
     }
 
     private fun tapDisableIfNeeded() {
-        if (device.hasObject(By.text(DISABLED_LABEL))) {
+        if (device.hasObject(By.desc(DISABLED_LABEL))) {
             return
         }
 
-        device.wait(Until.findObject(By.text(DISABLE_BUTTON)), TIMEOUT_MS)?.click()
-            ?: error("Disable battery alarm button was not visible")
+        device.wait(Until.findObject(By.desc(DISABLE_BUTTON)), TIMEOUT_MS)?.click()
+            ?: error("Disable battery alarm toggle was not visible")
 
         assertTrue(
             "Battery alarm setting did not become disabled",
-            device.wait(Until.hasObject(By.text(DISABLED_LABEL)), TIMEOUT_MS),
+            device.wait(Until.hasObject(By.desc(DISABLED_LABEL)), TIMEOUT_MS),
         )
         actions.waitForMonitoringServiceStopped()
     }
 
     private fun isMainSettingsVisible(): Boolean =
-        device.hasObject(By.text(ENABLED_LABEL)) ||
-            device.hasObject(By.text(DISABLED_LABEL)) ||
-            device.hasObject(By.text(ENABLE_BUTTON)) ||
-            device.hasObject(By.text(DISABLE_BUTTON)) ||
+        device.hasObject(By.desc(ENABLED_LABEL)) ||
+            device.hasObject(By.desc(DISABLED_LABEL)) ||
             device.hasObject(By.textContains("Battery alarm"))
 
     private fun enterDozeWithoutSleep() {

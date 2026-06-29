@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.SystemClock
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.StaleObjectException
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import com.example.batteryalarm.E2eTestConstants.ALARM_ASSERT_TIMEOUT_MS
@@ -86,21 +87,21 @@ class E2eTestActions(
         dismissAlarmUiIfVisible()
         waitForMainScreen()
 
-        if (device.hasObject(By.text(ENABLED_LABEL))) {
+        if (device.hasObject(By.desc(ENABLED_LABEL))) {
             waitForMonitoringService()
             return
         }
 
         val enableButton = device.wait(
-            Until.findObject(By.text(ENABLE_BUTTON)),
+            Until.findObject(By.desc(ENABLE_BUTTON)),
             TIMEOUT_MS,
-        ) ?: error("Enable battery alarm button was not visible")
+        ) ?: error("Enable battery alarm toggle was not visible")
 
         enableButton.click()
 
         assertTrue(
             "Battery alarm setting did not become enabled",
-            device.wait(Until.hasObject(By.text(ENABLED_LABEL)), TIMEOUT_MS),
+            device.wait(Until.hasObject(By.desc(ENABLED_LABEL)), TIMEOUT_MS),
         )
         waitForMonitoringService()
     }
@@ -110,21 +111,21 @@ class E2eTestActions(
         dismissAlarmUiIfVisible()
         waitForMainScreen()
 
-        if (device.hasObject(By.text(DISABLED_LABEL))) {
+        if (device.hasObject(By.desc(DISABLED_LABEL))) {
             assertMonitoringServiceNotRunning()
             return
         }
 
         val disableButton = device.wait(
-            Until.findObject(By.text(DISABLE_BUTTON)),
+            Until.findObject(By.desc(DISABLE_BUTTON)),
             TIMEOUT_MS,
-        ) ?: error("Disable battery alarm button was not visible")
+        ) ?: error("Disable battery alarm toggle was not visible")
 
         disableButton.click()
 
         assertTrue(
             "Battery alarm setting did not become disabled",
-            device.wait(Until.hasObject(By.text(DISABLED_LABEL)), TIMEOUT_MS),
+            device.wait(Until.hasObject(By.desc(DISABLED_LABEL)), TIMEOUT_MS),
         )
         waitForMonitoringServiceStopped()
     }
@@ -153,8 +154,8 @@ class E2eTestActions(
     }
 
     fun isUiAlarmEnabled(): Boolean {
-        val enabledVisible = device.hasObject(By.text(ENABLED_LABEL))
-        val disabledVisible = device.hasObject(By.text(DISABLED_LABEL))
+        val enabledVisible = device.hasObject(By.desc(ENABLED_LABEL))
+        val disabledVisible = device.hasObject(By.desc(DISABLED_LABEL))
         return when {
             enabledVisible && disabledVisible ->
                 error("Both enabled and disabled status labels are visible")
@@ -292,22 +293,13 @@ class E2eTestActions(
     }
 
     fun dismissAlarmUiIfVisible() {
-        val dismissOnScreen = device.wait(
-            Until.findObject(By.text(DISMISS_LABEL)),
-            1_000L,
-        )
-        if (dismissOnScreen != null) {
-            dismissOnScreen.click()
+        if (clickTextIfVisible(DISMISS_LABEL, 1_000L)) {
             device.wait(Until.gone(By.text(ALARM_TITLE)), TIMEOUT_MS)
             return
         }
 
         device.openNotification()
-        val dismissOnNotification = device.wait(
-            Until.findObject(By.text(DISMISS_LABEL)),
-            1_000L,
-        )
-        dismissOnNotification?.click()
+        clickTextIfVisible(DISMISS_LABEL, 1_000L)
         device.pressBack()
         device.wait(Until.gone(By.text(ALARM_TITLE)), TIMEOUT_MS)
     }
@@ -318,8 +310,8 @@ class E2eTestActions(
     }
 
     private fun findAlarmToggleButton() =
-        device.findObject(By.text(ENABLE_BUTTON))
-            ?: device.findObject(By.text(DISABLE_BUTTON))
+        device.findObject(By.desc(ENABLE_BUTTON))
+            ?: device.findObject(By.desc(DISABLE_BUTTON))
             ?: error("Alarm toggle button was not visible")
 
     private fun waitForMainScreen() {
@@ -334,23 +326,24 @@ class E2eTestActions(
     }
 
     private fun isMainScreenVisible(): Boolean =
-        device.hasObject(By.text(ENABLED_LABEL)) ||
-            device.hasObject(By.text(DISABLED_LABEL)) ||
-            device.hasObject(By.text(ENABLE_BUTTON)) ||
-            device.hasObject(By.text(DISABLE_BUTTON))
+        device.hasObject(By.desc(ENABLED_LABEL)) ||
+            device.hasObject(By.desc(DISABLED_LABEL))
 
     private fun isAlarmActiveOnScreen(): Boolean =
         device.hasObject(By.text(ALARM_TITLE)) && device.hasObject(By.text(DISMISS_LABEL))
 
     private fun isAlarmNotificationVisible(): Boolean {
         device.openNotification()
-        val titleObject = device.wait(Until.findObject(By.text(ALARM_TITLE)), TIMEOUT_MS)
+        val titleObject = device.wait(Until.findObject(By.text(ALARM_TITLE)), 1_000L)
         if (titleObject == null) {
+            val dismissOnNotification = device.hasObject(By.text(DISMISS_LABEL))
             device.pressBack()
-            return false
+            return dismissOnNotification
         }
 
-        titleObject.click()
+        runCatching {
+            titleObject.click()
+        }
         if (device.wait(Until.hasObject(By.text(DISMISS_LABEL)), TIMEOUT_MS)) {
             return true
         }
@@ -360,5 +353,21 @@ class E2eTestActions(
         val dismissOnNotification = device.findObject(By.text(DISMISS_LABEL)) != null
         device.pressBack()
         return dismissOnNotification
+    }
+
+    private fun clickTextIfVisible(text: String, timeoutMs: Long): Boolean {
+        val deadline = SystemClock.uptimeMillis() + timeoutMs
+        while (SystemClock.uptimeMillis() < deadline) {
+            val textObject = device.wait(Until.findObject(By.text(text)), 200L)
+            if (textObject != null) {
+                try {
+                    textObject.click()
+                    return true
+                } catch (exception: StaleObjectException) {
+                    SystemClock.sleep(100)
+                }
+            }
+        }
+        return false
     }
 }

@@ -39,10 +39,13 @@ class MainViewModel @Inject constructor(
                     }
                 }
                 .collect { alarmEnabled ->
-                    _uiState.value = MainUiState.from(
-                        alarmEnabled = alarmEnabled,
-                        isTestAlarmPending = _uiState.value.isTestAlarmPending,
-                    )
+                    _uiState.update { currentState ->
+                        MainUiState.from(
+                            alarmEnabled = alarmEnabled,
+                            isTestAlarmPending = currentState.isTestAlarmPending,
+                            testAlarmSecondsRemaining = currentState.testAlarmSecondsRemaining,
+                        )
+                    }
                 }
         }
     }
@@ -64,13 +67,36 @@ class MainViewModel @Inject constructor(
             return
         }
 
-        _uiState.update { it.copy(isTestAlarmPending = true) }
+        _uiState.update {
+            it.copy(
+                isTestAlarmPending = true,
+                testAlarmSecondsRemaining = BatteryLowAlarmHandler.TEST_ALARM_DELAY_SECONDS,
+            )
+        }
         batteryLowAlarmHandler.handleTestAlarm(
+            onTick = { secondsRemaining ->
+                _uiState.update {
+                    it.copy(
+                        isTestAlarmPending = true,
+                        testAlarmSecondsRemaining = secondsRemaining,
+                    )
+                }
+            },
             onFinished = {
-                _uiState.update { it.copy(isTestAlarmPending = false) }
+                _uiState.update {
+                    it.copy(
+                        isTestAlarmPending = false,
+                        testAlarmSecondsRemaining = null,
+                    )
+                }
             },
             onFailed = {
-                _uiState.update { it.copy(isTestAlarmPending = false) }
+                _uiState.update {
+                    it.copy(
+                        isTestAlarmPending = false,
+                        testAlarmSecondsRemaining = null,
+                    )
+                }
                 viewModelScope.launch {
                     _sideEffects.emit(MainSideEffect.ShowTestAlarmStartFailed)
                 }

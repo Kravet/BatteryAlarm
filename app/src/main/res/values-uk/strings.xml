@@ -6,11 +6,17 @@
     <string name="notification_permission_denied">Для сигналів про батарею потрібні сповіщення. Увімкніть їх у Налаштуваннях.</string>
     <string name="monitoring_notification_title">Моніторинг батареї активний</string>
     <string name="monitoring_notification_body">Очікування подій низького заряду.</string>
-    <string name="alarm_status_enabled">Сигналізацію батареї <b>увімкнено</b></string>
-    <string name="alarm_status_disabled">Сигналізацію батареї <b>вимкнено</b></string>
     <string name="enable_battery_alarm">Увімкнути сигналізацію батареї</string>
     <string name="disable_battery_alarm">Вимкнути сигналізацію батареї</string>
-    <string name="alarm_toggle_on">УВІМК</string>
-    <string name="alarm_toggle_off">ВИМК</string>
-    <string name="test_the_sound">Перевірити звук</string>
+    <string name="test_the_sound">Перевірити сигнал</string>
+    <string name="test_alarm_countdown">Тестовий сигнал через %1$d с</string>
+    <string name="test_alarm_lock_screen_hint">Заблокуйте телефон зараз, щоб перевірити сигнал на екрані блокування.</string>
+    <string name="main_title">Battery Alarm</string>
+    <string name="main_subtitle">Сигнал коли Android повідомляє про низький заряд.</string>
+    <string name="protection_on">Захист увімкнено</string>
+    <string name="protection_off">Захист вимкнено</string>
+    <string name="alarm_is_active">Попередимо, коли заряд стане низьким</string>
+    <string name="protection_off_subtitle">Ви не отримаєте сигнал про низький заряд.</string>
+    <string name="enable_alarm">Увімкнути</string>
+    <string name="disable_alarm">Вимкнути</string>
 </resources>

@@ -47,12 +47,16 @@ class BatteryLowAlarmHandler @Inject constructor(
     }
 
     fun handleTestAlarm(
+        onTick: (secondsRemaining: Int) -> Unit = {},
         onFinished: () -> Unit = {},
         onFailed: () -> Unit = {},
     ) {
         scope.launch {
             try {
-                delay(TEST_ALARM_DELAY_MS)
+                for (secondsRemaining in TEST_ALARM_DELAY_SECONDS downTo 1) {
+                    onTick(secondsRemaining)
+                    delay(TEST_ALARM_TICK_MS)
+                }
                 triggerAlarm(AlarmStartReason.TestAlarmFlow)
             } catch (exception: CancellationException) {
                 throw exception
@@ -76,7 +80,9 @@ class BatteryLowAlarmHandler @Inject constructor(
     }
 
     companion object {
-        const val TEST_ALARM_DELAY_MS = 1_000L
+        const val TEST_ALARM_DELAY_SECONDS = 4
+        const val TEST_ALARM_TICK_MS = 1_000L
+        const val TEST_ALARM_DELAY_MS = TEST_ALARM_DELAY_SECONDS * TEST_ALARM_TICK_MS
         private const val TAG = "BatteryLowAlarmHandler"
     }
 }

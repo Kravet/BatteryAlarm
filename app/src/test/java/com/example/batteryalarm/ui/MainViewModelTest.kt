@@ -25,6 +25,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
@@ -178,13 +179,37 @@ class MainViewModelTest {
         viewModel.onTestAlarmClick()
 
         assertTrue(viewModel.uiState.value.isTestAlarmPending)
+        assertEquals(BatteryLowAlarmHandler.TEST_ALARM_DELAY_SECONDS, viewModel.uiState.value.testAlarmSecondsRemaining)
         assertEquals(emptyList<AlarmStartReason>(), alarmController.startedReasons)
 
         advanceTimeBy(BatteryLowAlarmHandler.TEST_ALARM_DELAY_MS)
         advanceUntilIdle()
 
         assertFalse(viewModel.uiState.value.isTestAlarmPending)
+        assertEquals(null, viewModel.uiState.value.testAlarmSecondsRemaining)
         assertEquals(listOf(AlarmStartReason.TestAlarmFlow), alarmController.startedReasons)
+    }
+
+    @Test
+    fun `test alarm countdown updates once per second while pending`() = runTest {
+        val viewModel = createViewModel()
+
+        advanceUntilIdle()
+        viewModel.onTestAlarmClick()
+
+        assertEquals(4, viewModel.uiState.value.testAlarmSecondsRemaining)
+
+        advanceTimeBy(BatteryLowAlarmHandler.TEST_ALARM_TICK_MS)
+        runCurrent()
+        assertEquals(3, viewModel.uiState.value.testAlarmSecondsRemaining)
+
+        advanceTimeBy(BatteryLowAlarmHandler.TEST_ALARM_TICK_MS)
+        runCurrent()
+        assertEquals(2, viewModel.uiState.value.testAlarmSecondsRemaining)
+
+        advanceTimeBy(BatteryLowAlarmHandler.TEST_ALARM_TICK_MS)
+        runCurrent()
+        assertEquals(1, viewModel.uiState.value.testAlarmSecondsRemaining)
     }
 
     @Test
@@ -195,15 +220,18 @@ class MainViewModelTest {
         advanceUntilIdle()
         viewModel.onTestAlarmClick()
         assertTrue(viewModel.uiState.value.isTestAlarmPending)
+        assertEquals(BatteryLowAlarmHandler.TEST_ALARM_DELAY_SECONDS, viewModel.uiState.value.testAlarmSecondsRemaining)
 
         viewModel.onAlarmToggleClick()
-        advanceUntilIdle()
+        runCurrent()
         assertTrue(viewModel.uiState.value.isEnabled)
+        assertEquals(BatteryLowAlarmHandler.TEST_ALARM_DELAY_SECONDS, viewModel.uiState.value.testAlarmSecondsRemaining)
 
         advanceTimeBy(BatteryLowAlarmHandler.TEST_ALARM_DELAY_MS)
         advanceUntilIdle()
 
         assertFalse(viewModel.uiState.value.isTestAlarmPending)
+        assertEquals(null, viewModel.uiState.value.testAlarmSecondsRemaining)
         assertTrue(viewModel.uiState.value.isEnabled)
     }
 }

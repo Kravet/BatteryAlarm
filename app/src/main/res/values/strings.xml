@@ -6,11 +6,17 @@
     <string name="notification_permission_denied">Notifications are required for battery alarms. Enable them in Settings to use this feature.</string>
     <string name="monitoring_notification_title">Battery monitoring active</string>
     <string name="monitoring_notification_body">Listening for low battery events.</string>
-    <string name="alarm_status_enabled">Battery alarm is <b>enabled</b></string>
-    <string name="alarm_status_disabled">Battery alarm is <b>disabled</b></string>
     <string name="enable_battery_alarm">Enable battery alarm</string>
     <string name="disable_battery_alarm">Disable battery alarm</string>
-    <string name="alarm_toggle_on">ON</string>
-    <string name="alarm_toggle_off">OFF</string>
-    <string name="test_the_sound">Test the sound</string>
+    <string name="test_the_sound">Test alarm</string>
+    <string name="test_alarm_countdown">Test alarm in %1$ds</string>
+    <string name="test_alarm_lock_screen_hint">Lock your phone now to test the alarm on the lock screen.</string>
+    <string name="main_title">Battery Alarm</string>
+    <string name="main_subtitle">Alarm when Android reports low battery.</string>
+    <string name="protection_on">Protection is on</string>
+    <string name="protection_off">Protection is off</string>
+    <string name="alarm_is_active">Ready to alert you when battery is low</string>
+    <string name="protection_off_subtitle">You won\'t receive a low-battery alarm.</string>
+    <string name="enable_alarm">Enable Alarm</string>
+    <string name="disable_alarm">Disable Alarm</string>
 </resources>
