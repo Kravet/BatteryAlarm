@@ -413,11 +413,12 @@ private fun BatteryLevelIcon(
 }
 
 @Composable
-private fun HoldToStopButton(
+internal fun HoldToStopButton(
     label: String,
     contentDescription: String,
     onHoldComplete: () -> Unit,
     modifier: Modifier = Modifier,
+    holdDurationMillis: Int = HoldToStopDurationMillis,
 ) {
     val holdProgress = remember { Animatable(0f) }
     var isPressed by remember { mutableStateOf(false) }
@@ -425,13 +426,13 @@ private fun HoldToStopButton(
     val currentOnHoldComplete by rememberUpdatedState(onHoldComplete)
     val buttonShape = RoundedCornerShape(percent = 50)
 
-    LaunchedEffect(isPressed, hasTriggeredDismiss) {
+    LaunchedEffect(isPressed, hasTriggeredDismiss, holdDurationMillis) {
         if (isPressed && !hasTriggeredDismiss) {
             holdProgress.snapTo(0f)
             holdProgress.animateTo(
                 targetValue = 1f,
                 animationSpec = tween(
-                    durationMillis = HoldToStopDurationMillis,
+                    durationMillis = holdDurationMillis,
                     easing = LinearEasing,
                 ),
             )
@@ -459,7 +460,7 @@ private fun HoldToStopButton(
                     }
 
                     isPressed = true
-                    val completedHold = withTimeoutOrNull(HoldToStopDurationMillis.toLong()) {
+                    val completedHold = withTimeoutOrNull(holdDurationMillis.toLong()) {
                         waitForUpOrCancellation()
                         false
                     } ?: true
