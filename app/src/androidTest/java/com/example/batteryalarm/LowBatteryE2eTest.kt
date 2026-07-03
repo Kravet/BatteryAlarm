@@ -6,12 +6,14 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
+import com.example.batteryalarm.E2eTestConstants.ALARM_SCREEN_TITLE
 import com.example.batteryalarm.E2eTestConstants.ALARM_TITLE
 import com.example.batteryalarm.E2eTestConstants.DISABLE_BUTTON
 import com.example.batteryalarm.E2eTestConstants.DISABLED_LABEL
 import com.example.batteryalarm.E2eTestConstants.DISMISS_LABEL
 import com.example.batteryalarm.E2eTestConstants.ENABLE_BUTTON
 import com.example.batteryalarm.E2eTestConstants.ENABLED_LABEL
+import com.example.batteryalarm.E2eTestConstants.STOP_LABEL
 import com.example.batteryalarm.E2eTestConstants.TIMEOUT_MS
 import org.junit.After
 import org.junit.Assert.assertFalse
@@ -184,7 +186,7 @@ class LowBatteryE2eTest {
     private fun assertAlarmIsNotVisible() {
         assertFalse(
             "Low battery alarm screen was visible but should not be",
-            device.wait(Until.hasObject(By.text(ALARM_TITLE)), TIMEOUT_MS),
+            device.wait(Until.hasObject(By.text(ALARM_SCREEN_TITLE)), TIMEOUT_MS),
         )
         device.openNotification()
         assertFalse(
@@ -195,7 +197,7 @@ class LowBatteryE2eTest {
     }
 
     private fun isAlarmVisibleOnScreen(): Boolean =
-        device.hasObject(By.text(ALARM_TITLE)) && device.hasObject(By.text(DISMISS_LABEL))
+        device.hasObject(By.text(ALARM_SCREEN_TITLE)) && device.hasObject(By.text(STOP_LABEL))
 
     private fun isAlarmVisibleInNotificationShade(): Boolean {
         device.openNotification()
@@ -206,7 +208,7 @@ class LowBatteryE2eTest {
         }
 
         titleObject.click()
-        if (device.wait(Until.hasObject(By.text(DISMISS_LABEL)), TIMEOUT_MS)) {
+        if (device.wait(Until.hasObject(By.text(STOP_LABEL)), TIMEOUT_MS)) {
             return true
         }
 

@@ -3,7 +3,9 @@ package com.example.batteryalarm
 object E2eTestConstants {
     const val PACKAGE_NAME = "com.example.batteryalarm"
     const val ALARM_TITLE = "Low battery alarm"
+    const val ALARM_SCREEN_TITLE = "Low Battery"
     const val DISMISS_LABEL = "Dismiss"
+    const val STOP_LABEL = "Stop"
     // The main screen exposes a single toggle (a Switch on the status card) whose
     // contentDescription reflects the action it performs: "Enable battery alarm" when
     // currently disabled, "Disable battery alarm" when currently enabled. These labels

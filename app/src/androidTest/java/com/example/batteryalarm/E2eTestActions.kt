@@ -10,6 +10,7 @@ import androidx.test.uiautomator.StaleObjectException
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import com.example.batteryalarm.E2eTestConstants.ALARM_ASSERT_TIMEOUT_MS
+import com.example.batteryalarm.E2eTestConstants.ALARM_SCREEN_TITLE
 import com.example.batteryalarm.E2eTestConstants.ALARM_TITLE
 import com.example.batteryalarm.E2eTestConstants.DISABLE_BUTTON
 import com.example.batteryalarm.E2eTestConstants.DISABLED_LABEL
@@ -17,6 +18,7 @@ import com.example.batteryalarm.E2eTestConstants.DISMISS_LABEL
 import com.example.batteryalarm.E2eTestConstants.ENABLE_BUTTON
 import com.example.batteryalarm.E2eTestConstants.ENABLED_LABEL
 import com.example.batteryalarm.E2eTestConstants.PACKAGE_NAME
+import com.example.batteryalarm.E2eTestConstants.STOP_LABEL
 import com.example.batteryalarm.E2eTestConstants.TEST_BUTTON
 import com.example.batteryalarm.E2eTestConstants.TIMEOUT_MS
 import com.example.batteryalarm.E2eTestConstants.TOGGLE_SETTLE_TIMEOUT_MS
@@ -26,6 +28,8 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+
+private const val HOLD_TO_STOP_DURATION_MS = 2_250L
 
 class E2eTestActions(
     private val context: Context,
@@ -282,7 +286,7 @@ class E2eTestActions(
     fun assertAlarmUiNotVisible() {
         assertFalse(
             "Low battery alarm screen was visible but should not be",
-            device.wait(Until.hasObject(By.text(ALARM_TITLE)), TIMEOUT_MS),
+            device.wait(Until.hasObject(By.text(ALARM_SCREEN_TITLE)), TIMEOUT_MS),
         )
         device.openNotification()
         assertFalse(
@@ -293,15 +297,15 @@ class E2eTestActions(
     }
 
     fun dismissAlarmUiIfVisible() {
-        if (clickTextIfVisible(DISMISS_LABEL, 1_000L)) {
-            device.wait(Until.gone(By.text(ALARM_TITLE)), TIMEOUT_MS)
+        if (holdTextIfVisible(STOP_LABEL, 1_000L, HOLD_TO_STOP_DURATION_MS)) {
+            device.wait(Until.gone(By.text(ALARM_SCREEN_TITLE)), TIMEOUT_MS)
             return
         }
 
         device.openNotification()
         clickTextIfVisible(DISMISS_LABEL, 1_000L)
         device.pressBack()
-        device.wait(Until.gone(By.text(ALARM_TITLE)), TIMEOUT_MS)
+        device.wait(Until.gone(By.text(ALARM_SCREEN_TITLE)), TIMEOUT_MS)
     }
 
     fun waitForRealTime(durationMs: Long) {
@@ -330,7 +334,7 @@ class E2eTestActions(
             device.hasObject(By.desc(DISABLED_LABEL))
 
     private fun isAlarmActiveOnScreen(): Boolean =
-        device.hasObject(By.text(ALARM_TITLE)) && device.hasObject(By.text(DISMISS_LABEL))
+        device.hasObject(By.text(ALARM_SCREEN_TITLE)) && device.hasObject(By.text(STOP_LABEL))
 
     private fun isAlarmNotificationVisible(): Boolean {
         device.openNotification()
@@ -344,7 +348,7 @@ class E2eTestActions(
         runCatching {
             titleObject.click()
         }
-        if (device.wait(Until.hasObject(By.text(DISMISS_LABEL)), TIMEOUT_MS)) {
+        if (device.wait(Until.hasObject(By.text(STOP_LABEL)), TIMEOUT_MS)) {
             return true
         }
 
@@ -362,6 +366,23 @@ class E2eTestActions(
             if (textObject != null) {
                 try {
                     textObject.click()
+                    return true
+                } catch (exception: StaleObjectException) {
+                    SystemClock.sleep(100)
+                }
+            }
+        }
+        return false
+    }
+
+    private fun holdTextIfVisible(text: String, timeoutMs: Long, holdDurationMs: Long): Boolean {
+        val deadline = SystemClock.uptimeMillis() + timeoutMs
+        while (SystemClock.uptimeMillis() < deadline) {
+            val textObject = device.wait(Until.findObject(By.text(text)), 200L)
+            if (textObject != null) {
+                try {
+                    val center = textObject.visibleCenter
+                    runShell("input swipe ${center.x} ${center.y} ${center.x} ${center.y} $holdDurationMs")
                     return true
                 } catch (exception: StaleObjectException) {
                     SystemClock.sleep(100)
