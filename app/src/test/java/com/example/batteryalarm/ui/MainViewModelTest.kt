@@ -52,6 +52,7 @@ class MainViewModelTest {
         return MainViewModel(
             alarmSettingsRepository = alarmSettingsRepository,
             batteryLowAlarmHandler = handler,
+            alarmController = alarmController,
         )
     }
 
@@ -165,6 +166,26 @@ class MainViewModelTest {
         advanceUntilIdle()
 
         assertFalse(viewModel.uiState.value.isEnabled)
+    }
+
+    @Test
+    fun `is alarm active returns true when alarm is active`() = runTest {
+        val viewModel = createViewModel(
+            alarmController = FakeAlarmController(
+                initialState = AlarmState.Active(AlarmStartReason.SystemLowBattery),
+            ),
+        )
+
+        assertTrue(viewModel.isAlarmActive())
+    }
+
+    @Test
+    fun `is alarm active returns false when alarm is idle`() = runTest {
+        val viewModel = createViewModel(
+            alarmController = FakeAlarmController(initialState = AlarmState.Idle),
+        )
+
+        assertFalse(viewModel.isAlarmActive())
     }
 
     @Test

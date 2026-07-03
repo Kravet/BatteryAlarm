@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import com.example.batteryalarm.R
 import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
@@ -31,6 +32,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (redirectToAlarmIfActive()) {
+            return
+        }
         enableEdgeToEdge()
         setContent {
             BatteryAlarmTheme {
@@ -38,6 +42,7 @@ class MainActivity : ComponentActivity() {
                 val snackbarHostState = remember { SnackbarHostState() }
                 val context = LocalContext.current
                 val coroutineScope = rememberCoroutineScope()
+                val notificationPermissionDeniedMessage = stringResource(R.string.notification_permission_denied)
 
                 val notificationPermissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission(),
@@ -47,7 +52,7 @@ class MainActivity : ComponentActivity() {
                     } else {
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar(
-                                message = context.getString(R.string.notification_permission_denied),
+                                message = notificationPermissionDeniedMessage,
                             )
                         }
                     }
@@ -92,6 +97,21 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        redirectToAlarmIfActive()
+    }
+
+    private fun redirectToAlarmIfActive(): Boolean {
+        if (!viewModel.isAlarmActive()) {
+            return false
+        }
+        startActivity(AlarmActivity.createAppLaunchAlarmIntent(this))
+        finish()
+        return true
     }
 
     companion object {

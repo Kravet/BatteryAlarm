@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -26,19 +27,24 @@ class AlarmActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         configureLockScreenFlags()
 
-        if (shouldFinishImmediately(intent)) {
-            Log.d(TAG, "onCreate: finishing, reason=finish_action")
-            finish()
-            return
-        }
-
-        if (!viewModel.isAlarmActive()) {
-            Log.d(TAG, "onCreate: finishing, reason=alarm_inactive")
-            finish()
+        if (finishIfNeeded("onCreate")) {
             return
         }
 
         Log.d(TAG, "onCreate: showing alarm overlay")
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (isAppLaunchEntryPoint(intent)) {
+                        finishAffinity()
+                    } else {
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                    }
+                }
+            },
+        )
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
@@ -48,8 +54,7 @@ class AlarmActivity : ComponentActivity() {
                 LowBatteryAlarmScreen(
                     batteryPercentage = currentBatteryPercentage(),
                     onDismissAlarmClick = {
-                        viewModel.onDismissAlarmClick()
-                        finish()
+                        dismissAlarmAndFinish()
                     },
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -60,7 +65,30 @@ class AlarmActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        finishIfNeeded("onNewIntent")
+    }
+
+    private fun finishIfNeeded(source: String): Boolean {
         if (shouldFinishImmediately(intent)) {
+            Log.d(TAG, "$source: finishing, reason=finish_action")
+            finish()
+            return true
+        }
+
+        if (!viewModel.isAlarmActive()) {
+            Log.d(TAG, "$source: finishing, reason=alarm_inactive")
+            finish()
+            return true
+        }
+
+        return false
+    }
+
+    private fun dismissAlarmAndFinish() {
+        viewModel.onDismissAlarmClick()
+        if (isAppLaunchEntryPoint(intent)) {
+            finishAffinity()
+        } else {
             finish()
         }
     }
@@ -74,6 +102,9 @@ class AlarmActivity : ComponentActivity() {
 
     private fun shouldFinishImmediately(intent: Intent?): Boolean =
         intent?.action == ACTION_FINISH
+
+    private fun isAppLaunchEntryPoint(intent: Intent?): Boolean =
+        intent?.getStringExtra(EXTRA_ENTRY_POINT) == ENTRY_POINT_APP_LAUNCH
 
     private fun currentBatteryPercentage(): Int {
         val batteryManager = getSystemService(BatteryManager::class.java)
@@ -96,8 +127,20 @@ class AlarmActivity : ComponentActivity() {
         private const val TAG = "AlarmActivity"
         private const val ACTION_FINISH = "com.example.batteryalarm.action.FINISH_ALARM"
         private const val DEFAULT_BATTERY_PERCENTAGE = 10
+        private const val EXTRA_ENTRY_POINT = "com.example.batteryalarm.extra.ALARM_ENTRY_POINT"
+        private const val ENTRY_POINT_FULL_SCREEN = "full_screen"
+        private const val ENTRY_POINT_APP_LAUNCH = "app_launch"
 
         fun createAlarmIntent(context: Context): Intent = Intent(context, AlarmActivity::class.java)
+            .putExtra(EXTRA_ENTRY_POINT, ENTRY_POINT_FULL_SCREEN)
+            .addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP,
+            )
+
+        fun createAppLaunchAlarmIntent(context: Context): Intent = Intent(context, AlarmActivity::class.java)
+            .putExtra(EXTRA_ENTRY_POINT, ENTRY_POINT_APP_LAUNCH)
             .addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or

@@ -86,6 +86,18 @@ class E2eTestActions(
         waitForMainScreen()
     }
 
+    fun launchAppExpectingAlarmScreen() {
+        val intent = context.packageManager.getLaunchIntentForPackage(PACKAGE_NAME)
+            ?: error("Could not find launch intent for $PACKAGE_NAME")
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+        assertTrue(
+            "App did not open",
+            device.wait(Until.hasObject(By.pkg(PACKAGE_NAME).depth(0)), TIMEOUT_MS),
+        )
+        waitForAlarmScreen()
+    }
+
     fun enableBatteryAlarm() {
         waitForMainScreen()
         dismissAlarmUiIfVisible()
@@ -113,6 +125,28 @@ class E2eTestActions(
     fun disableBatteryAlarm() {
         waitForMainScreen()
         dismissAlarmUiIfVisible()
+        waitForMainScreen()
+
+        if (device.hasObject(By.desc(DISABLED_LABEL))) {
+            assertMonitoringServiceNotRunning()
+            return
+        }
+
+        val disableButton = device.wait(
+            Until.findObject(By.desc(DISABLE_BUTTON)),
+            TIMEOUT_MS,
+        ) ?: error("Disable battery alarm toggle was not visible")
+
+        disableButton.click()
+
+        assertTrue(
+            "Battery alarm setting did not become disabled",
+            device.wait(Until.hasObject(By.desc(DISABLED_LABEL)), TIMEOUT_MS),
+        )
+        waitForMonitoringServiceStopped()
+    }
+
+    fun disableBatteryAlarmFromMainScreen() {
         waitForMainScreen()
 
         if (device.hasObject(By.desc(DISABLED_LABEL))) {
@@ -207,6 +241,13 @@ class E2eTestActions(
     fun backgroundApp() {
         device.pressHome()
         device.wait(Until.gone(By.pkg(PACKAGE_NAME)), TIMEOUT_MS)
+    }
+
+    fun assertAppNotInForeground() {
+        assertTrue(
+            "App should not be in foreground",
+            device.wait(Until.gone(By.pkg(PACKAGE_NAME).depth(0)), TIMEOUT_MS),
+        )
     }
 
     fun enterDozeAndSleep() {
@@ -313,12 +354,19 @@ class E2eTestActions(
         instrumentation.waitForIdleSync()
     }
 
+    fun holdStopAlarmOnScreen() {
+        if (!holdTextIfVisible(STOP_LABEL, TIMEOUT_MS, HOLD_TO_STOP_DURATION_MS)) {
+            error("Stop alarm button was not visible")
+        }
+        device.wait(Until.gone(By.text(ALARM_SCREEN_TITLE)), TIMEOUT_MS)
+    }
+
     private fun findAlarmToggleButton() =
         device.findObject(By.desc(ENABLE_BUTTON))
             ?: device.findObject(By.desc(DISABLE_BUTTON))
             ?: error("Alarm toggle button was not visible")
 
-    private fun waitForMainScreen() {
+    fun waitForMainScreen() {
         val deadline = SystemClock.uptimeMillis() + TIMEOUT_MS
         while (SystemClock.uptimeMillis() < deadline) {
             if (isMainScreenVisible()) {
@@ -327,6 +375,17 @@ class E2eTestActions(
             SystemClock.sleep(200)
         }
         error("Main settings screen was not ready")
+    }
+
+    fun waitForAlarmScreen() {
+        val deadline = SystemClock.uptimeMillis() + ALARM_ASSERT_TIMEOUT_MS
+        while (SystemClock.uptimeMillis() < deadline) {
+            if (isAlarmActiveOnScreen()) {
+                return
+            }
+            SystemClock.sleep(200)
+        }
+        error("Low battery alarm screen was not ready")
     }
 
     private fun isMainScreenVisible(): Boolean =

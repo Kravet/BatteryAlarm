@@ -48,4 +48,43 @@ class TestAlarmE2eTest {
         actions.dismissAlarmUiIfVisible()
         actions.assertAlarmUiNotVisible()
     }
+
+    @Test
+    fun opening_app_while_test_alarm_active_shows_alarm_screen_and_stop_exits_app() {
+        startTestAlarmAndBackgroundApp()
+
+        actions.launchAppExpectingAlarmScreen()
+        actions.holdStopAlarmOnScreen()
+
+        actions.assertAppNotInForeground()
+        actions.assertAlarmUiNotVisible()
+    }
+
+    @Test
+    fun pressing_back_from_app_launch_alarm_screen_exits_app_and_alarm_stays_active() {
+        startTestAlarmAndBackgroundApp()
+
+        actions.launchAppExpectingAlarmScreen()
+        device.pressBack()
+
+        actions.assertAppNotInForeground()
+
+        actions.launchAppExpectingAlarmScreen()
+        actions.holdStopAlarmOnScreen()
+        actions.assertAppNotInForeground()
+        actions.assertAlarmUiNotVisible()
+    }
+
+    private fun startTestAlarmAndBackgroundApp() {
+        actions.launchApp()
+        actions.enableBatteryAlarm()
+        E2eAlarmLog.awaitMonitoringStarted(actions::runShell)
+
+        actions.tapTestAlarmButton()
+        E2eAlarmLog.awaitTestAlarmStarted(actions::runShell)
+
+        actions.wakeAndUnlock()
+        actions.assertAlarmIsActive()
+        actions.backgroundApp()
+    }
 }

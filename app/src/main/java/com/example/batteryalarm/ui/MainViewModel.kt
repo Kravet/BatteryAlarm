@@ -3,7 +3,9 @@ package com.example.batteryalarm.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.batteryalarm.alarm.BatteryLowAlarmHandler
+import com.example.batteryalarm.domain.AlarmController
 import com.example.batteryalarm.domain.AlarmSettingsRepository
+import com.example.batteryalarm.domain.AlarmState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -21,6 +23,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val alarmSettingsRepository: AlarmSettingsRepository,
     private val batteryLowAlarmHandler: BatteryLowAlarmHandler,
+    private val alarmController: AlarmController,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MainUiState.from(alarmEnabled = false, isTestAlarmPending = false))
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -49,6 +52,8 @@ class MainViewModel @Inject constructor(
                 }
         }
     }
+
+    fun isAlarmActive(): Boolean = alarmController.state is AlarmState.Active
 
     fun onAlarmToggleClick() {
         viewModelScope.launch {

@@ -14,7 +14,6 @@ import com.example.batteryalarm.domain.AlarmNotifier
 import com.example.batteryalarm.ui.theme.BrandRed
 import com.example.batteryalarm.domain.AlarmStartReason
 import com.example.batteryalarm.ui.AlarmActivity
-import com.example.batteryalarm.ui.MainActivity
 
 class AndroidAlarmNotifier(
     private val context: Context,
@@ -25,11 +24,10 @@ class AndroidAlarmNotifier(
     override fun showAlarmStarted(reason: AlarmStartReason) {
         createChannelIfNeeded()
 
-        val mainIntent = MainActivity.createIntent(context)
         val contentPendingIntent = PendingIntent.getActivity(
             context,
             REQUEST_CONTENT,
-            mainIntent,
+            AlarmActivity.createAppLaunchAlarmIntent(context),
             pendingIntentFlags(),
         )
 
