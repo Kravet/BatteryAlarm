@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -161,7 +162,7 @@ fun LowBatteryAlarmScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .widthIn(max = 300.dp)
-                    .height(72.dp),
+                    .heightIn(min = 72.dp),
             )
         }
     }
@@ -525,7 +526,10 @@ internal fun HoldToStopButton(
         contentAlignment = Alignment.Center,
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -535,10 +539,13 @@ internal fun HoldToStopButton(
             )
             Text(
                 text = label,
+                modifier = Modifier.weight(1f, fill = false),
                 color = AlarmRedText,
                 fontSize = 24.sp,
-                lineHeight = 30.sp,
+                lineHeight = 28.sp,
                 fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
             )
         }
     }

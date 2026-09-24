@@ -6,7 +6,7 @@
     <string name="alarm_screen_title">Низький заряд</string>
     <string name="alarm_screen_percentage">%1$d%%</string>
     <string name="alarm_screen_body">Підключіть пристрій до зарядки</string>
-    <string name="stop_alarm">Стоп</string>
+    <string name="stop_alarm">УТРИМУЙТЕ, щоб зупинити</string>
     <string name="hold_to_stop_alarm">Утримуйте 2 секунди, щоб зупинити сигнал</string>
     <string name="notification_permission_denied">Для сигналів про батарею потрібні сповіщення. Увімкніть їх у Налаштуваннях.</string>
     <string name="monitoring_notification_title">Моніторинг батареї активний</string>

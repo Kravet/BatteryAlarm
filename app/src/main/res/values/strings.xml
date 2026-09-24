@@ -6,7 +6,7 @@
     <string name="alarm_screen_title">Low Battery</string>
     <string name="alarm_screen_percentage">%1$d%%</string>
     <string name="alarm_screen_body">Please charge your device</string>
-    <string name="stop_alarm">Stop</string>
+    <string name="stop_alarm">HOLD to Stop</string>
     <string name="hold_to_stop_alarm">Hold for 2 seconds to stop the alarm</string>
     <string name="notification_permission_denied">Notifications are required for battery alarms. Enable them in Settings to use this feature.</string>
     <string name="monitoring_notification_title">Battery monitoring active</string>
