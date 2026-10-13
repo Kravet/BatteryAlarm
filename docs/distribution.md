@@ -11,6 +11,15 @@ Battery Alarm APKs are distributed from the public [`Kravet/battery-alarm-releas
 
 GitHub's `/releases/latest` endpoint selects the latest non-prerelease release. A future stable Update Checker can use that endpoint. A beta Update Checker must instead query the Releases API and select a prerelease according to the beta channel; it must not assume `/releases/latest` includes beta releases.
 
+## Stable distribution URLs
+
+- Repository: <https://github.com/Kravet/battery-alarm-releases>
+- Releases: <https://github.com/Kravet/battery-alarm-releases/releases>
+- Latest stable release: <https://github.com/Kravet/battery-alarm-releases/releases/latest>
+- Direct stable APK: <https://github.com/Kravet/battery-alarm-releases/releases/latest/download/BatteryAlarm.apk>
+
+The latest-release and direct-APK URLs will resolve to a downloadable release only after the first normal stable release with a `BatteryAlarm.apk` asset is published.
+
 ## Manual release procedure
 
 1. Choose and verify the release version and channel. Use a `v`-prefixed tag matching the version, and mark beta releases as prereleases.
