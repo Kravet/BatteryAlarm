@@ -24,4 +24,9 @@
     <string name="protection_off_subtitle">You won\'t receive a low-battery alarm.</string>
     <string name="enable_alarm">Enable Alarm</string>
     <string name="disable_alarm">Disable Alarm</string>
+    <string name="update_available_title">Battery Alarm %1$s is available</string>
+    <string name="update_available_body">A new version of Battery Alarm is available.</string>
+    <string name="update_whats_new">What\'s new</string>
+    <string name="update_action_update">Update</string>
+    <string name="update_action_later">Later</string>
 </resources>

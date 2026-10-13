@@ -24,4 +24,9 @@
     <string name="protection_off_subtitle">Ви не отримаєте сигнал про низький заряд.</string>
     <string name="enable_alarm">Увімкнути</string>
     <string name="disable_alarm">Вимкнути</string>
+    <string name="update_available_title">Доступна Battery Alarm %1$s</string>
+    <string name="update_available_body">Доступна нова версія Battery Alarm.</string>
+    <string name="update_whats_new">Що нового</string>
+    <string name="update_action_update">Оновити</string>
+    <string name="update_action_later">Пізніше</string>
 </resources>

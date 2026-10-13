@@ -23,6 +23,8 @@ fun MainScreen(
     snackbarHostState: SnackbarHostState,
     onAlarmToggleClick: () -> Unit,
     onTestAlarmClick: () -> Unit,
+    onUpdateClick: () -> Unit = {},
+    onUpdateLaterClick: () -> Unit = {},
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -46,6 +48,14 @@ fun MainScreen(
                 onTestAlarmClick = onTestAlarmClick,
             )
         }
+    }
+
+    uiState.pendingUpdate?.let { pendingUpdate ->
+        UpdateAvailableDialog(
+            update = pendingUpdate,
+            onUpdateClick = onUpdateClick,
+            onLaterClick = onUpdateLaterClick,
+        )
     }
 }
 

@@ -18,6 +18,7 @@ class MainUiStateTest {
                 toggleContentDescriptionRes = R.string.disable_battery_alarm,
                 isTestAlarmPending = false,
                 testAlarmSecondsRemaining = null,
+                pendingUpdate = null,
             ),
             state,
         )
@@ -36,6 +37,7 @@ class MainUiStateTest {
                 toggleContentDescriptionRes = R.string.enable_battery_alarm,
                 isTestAlarmPending = false,
                 testAlarmSecondsRemaining = null,
+                pendingUpdate = null,
             ),
             state,
         )

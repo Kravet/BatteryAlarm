@@ -6,6 +6,10 @@ import com.example.batteryalarm.alarm.BatteryLowAlarmHandler
 import com.example.batteryalarm.domain.AlarmController
 import com.example.batteryalarm.domain.AlarmSettingsRepository
 import com.example.batteryalarm.domain.AlarmState
+import com.example.batteryalarm.domain.update.CheckForAppUpdate
+import com.example.batteryalarm.domain.update.UpdateCheckAttemptStore
+import com.example.batteryalarm.domain.update.UpdateCheckResult
+import com.example.batteryalarm.update.UpdateOpener
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -24,6 +28,9 @@ class MainViewModel @Inject constructor(
     private val alarmSettingsRepository: AlarmSettingsRepository,
     private val batteryLowAlarmHandler: BatteryLowAlarmHandler,
     private val alarmController: AlarmController,
+    private val checkForAppUpdate: CheckForAppUpdate,
+    private val updateCheckAttemptStore: UpdateCheckAttemptStore,
+    private val updateOpener: UpdateOpener,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MainUiState.from(alarmEnabled = false, isTestAlarmPending = false))
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -47,9 +54,13 @@ class MainViewModel @Inject constructor(
                             alarmEnabled = alarmEnabled,
                             isTestAlarmPending = currentState.isTestAlarmPending,
                             testAlarmSecondsRemaining = currentState.testAlarmSecondsRemaining,
+                            pendingUpdate = currentState.pendingUpdate,
                         )
                     }
                 }
+        }
+        viewModelScope.launch {
+            runUpdateCheck()
         }
     }
 
@@ -107,6 +118,45 @@ class MainViewModel @Inject constructor(
                 }
             },
         )
+    }
+
+    fun onUpdateClick() {
+        val pending = _uiState.value.pendingUpdate ?: return
+        updateOpener.openReleasePage(pending.releasePageUrl)
+        _uiState.update { it.copy(pendingUpdate = null) }
+        viewModelScope.launch {
+            updateCheckAttemptStore.clearPendingUpdate()
+        }
+    }
+
+    fun onUpdateLaterClick() {
+        _uiState.update { it.copy(pendingUpdate = null) }
+        viewModelScope.launch {
+            updateCheckAttemptStore.clearPendingUpdate()
+        }
+    }
+
+    private suspend fun runUpdateCheck() {
+        try {
+            when (val result = checkForAppUpdate()) {
+                is UpdateCheckResult.Available -> {
+                    if (!isAlarmActive()) {
+                        _uiState.update { current ->
+                            current.copy(pendingUpdate = AppUpdateUiModel.from(result.update))
+                        }
+                    }
+                }
+                UpdateCheckResult.Disabled,
+                UpdateCheckResult.SkippedWithinInterval,
+                UpdateCheckResult.UpToDate,
+                UpdateCheckResult.NoUsableRelease,
+                -> Unit
+            }
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (_: Exception) {
+            // Auto update checks fail silently.
+        }
     }
 }
 

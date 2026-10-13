@@ -45,6 +45,12 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // GitHub Releases update checker (placeholders until the public repo is wired).
+        buildConfigField("boolean", "UPDATE_CHECKER_ENABLED", "false")
+        buildConfigField("String", "UPDATE_GITHUB_OWNER", "\"PLACEHOLDER_OWNER\"")
+        buildConfigField("String", "UPDATE_GITHUB_REPO", "\"PLACEHOLDER_REPOSITORY\"")
+        buildConfigField("String", "UPDATE_GITHUB_API_BASE", "\"https://api.github.com\"")
     }
 
     signingConfigs {
@@ -73,6 +79,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -90,10 +97,13 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.okhttp)
     ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.org.json)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -8,12 +8,14 @@ data class MainUiState(
     @param:StringRes val toggleContentDescriptionRes: Int,
     val isTestAlarmPending: Boolean,
     val testAlarmSecondsRemaining: Int? = null,
+    val pendingUpdate: AppUpdateUiModel? = null,
 ) {
     companion object {
         fun from(
             alarmEnabled: Boolean,
             isTestAlarmPending: Boolean,
             testAlarmSecondsRemaining: Int? = null,
+            pendingUpdate: AppUpdateUiModel? = null,
         ): MainUiState = MainUiState(
             isEnabled = alarmEnabled,
             toggleContentDescriptionRes = if (alarmEnabled) {
@@ -23,6 +25,7 @@ data class MainUiState(
             },
             isTestAlarmPending = isTestAlarmPending,
             testAlarmSecondsRemaining = testAlarmSecondsRemaining,
+            pendingUpdate = pendingUpdate,
         )
     }
 }

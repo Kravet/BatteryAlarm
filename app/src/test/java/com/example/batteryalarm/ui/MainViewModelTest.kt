@@ -8,6 +8,14 @@ import com.example.batteryalarm.domain.AlarmSettingsRepository
 import com.example.batteryalarm.domain.AlarmState
 import com.example.batteryalarm.domain.AlarmStopReason
 import com.example.batteryalarm.domain.AlarmStopResult
+import com.example.batteryalarm.domain.update.AppUpdate
+import com.example.batteryalarm.domain.update.CheckForAppUpdate
+import com.example.batteryalarm.domain.update.InstalledAppVersionName
+import com.example.batteryalarm.domain.update.LatestStableRelease
+import com.example.batteryalarm.domain.update.LatestStableReleaseSource
+import com.example.batteryalarm.domain.update.UpdateCheckAttemptStore
+import com.example.batteryalarm.domain.update.UpdateCheckerEnabled
+import com.example.batteryalarm.update.UpdateOpener
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,6 +38,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -44,6 +53,9 @@ class MainViewModelTest {
     private fun TestScope.createViewModel(
         alarmSettingsRepository: FakeAlarmSettingsRepository = FakeAlarmSettingsRepository(enabled = false),
         alarmController: FakeAlarmController = FakeAlarmController(),
+        checkForAppUpdate: CheckForAppUpdate = disabledUpdateChecker(),
+        updateCheckAttemptStore: UpdateCheckAttemptStore = InMemoryUpdateCheckAttemptStore(),
+        updateOpener: FakeUpdateOpener = FakeUpdateOpener(),
     ): MainViewModel {
         val handler = BatteryLowAlarmHandler(
             alarmController = alarmController,
@@ -53,8 +65,57 @@ class MainViewModelTest {
             alarmSettingsRepository = alarmSettingsRepository,
             batteryLowAlarmHandler = handler,
             alarmController = alarmController,
+            checkForAppUpdate = checkForAppUpdate,
+            updateCheckAttemptStore = updateCheckAttemptStore,
+            updateOpener = updateOpener,
         )
     }
+
+    private fun disabledUpdateChecker(
+        store: UpdateCheckAttemptStore = InMemoryUpdateCheckAttemptStore(),
+    ): CheckForAppUpdate = CheckForAppUpdate(
+        isEnabled = UpdateCheckerEnabled { false },
+        attemptStore = store,
+        releaseSource = object : LatestStableReleaseSource {
+            override suspend fun fetchLatestStableRelease(): LatestStableRelease? = null
+        },
+        installedVersionName = InstalledAppVersionName { "1.0.0" },
+        clockMillis = { 0L },
+    )
+
+    private fun availableUpdateChecker(
+        store: UpdateCheckAttemptStore = InMemoryUpdateCheckAttemptStore(),
+        update: AppUpdate = AppUpdate(
+            versionName = "1.1.0",
+            releaseNotes = "Notes",
+            releasePageUrl = "https://github.com/example/repo/releases/tag/v1.1.0",
+        ),
+    ): CheckForAppUpdate = CheckForAppUpdate(
+        isEnabled = UpdateCheckerEnabled { true },
+        attemptStore = store,
+        releaseSource = object : LatestStableReleaseSource {
+            override suspend fun fetchLatestStableRelease(): LatestStableRelease = LatestStableRelease(
+                tagName = "v${update.versionName}",
+                body = update.releaseNotes,
+                htmlUrl = update.releasePageUrl,
+            )
+        },
+        installedVersionName = InstalledAppVersionName { "1.0.0" },
+        clockMillis = { 1L },
+    )
+
+    private fun pendingWithinIntervalChecker(
+        store: InMemoryUpdateCheckAttemptStore,
+    ): CheckForAppUpdate = CheckForAppUpdate(
+        isEnabled = UpdateCheckerEnabled { true },
+        attemptStore = store,
+        releaseSource = object : LatestStableReleaseSource {
+            override suspend fun fetchLatestStableRelease(): LatestStableRelease? =
+                error("Remote should not be called within interval")
+        },
+        installedVersionName = InstalledAppVersionName { "1.0.0" },
+        clockMillis = { 1_000L },
+    )
 
     @Test
     fun `initial state uses stored alarm enabled flag`() = runTest {
@@ -254,6 +315,143 @@ class MainViewModelTest {
         assertFalse(viewModel.uiState.value.isTestAlarmPending)
         assertEquals(null, viewModel.uiState.value.testAlarmSecondsRemaining)
         assertTrue(viewModel.uiState.value.isEnabled)
+    }
+
+    @Test
+    fun `when update is available, then pending update is set on ui state`() = runTest {
+        val viewModel = createViewModel(
+            checkForAppUpdate = availableUpdateChecker(),
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(
+            AppUpdateUiModel(
+                versionName = "1.1.0",
+                releaseNotes = "Notes",
+                releasePageUrl = "https://github.com/example/repo/releases/tag/v1.1.0",
+            ),
+            viewModel.uiState.value.pendingUpdate,
+        )
+    }
+
+    @Test
+    fun `when later is clicked, then pending update is cleared`() = runTest {
+        val viewModel = createViewModel(
+            checkForAppUpdate = availableUpdateChecker(),
+        )
+        advanceUntilIdle()
+
+        viewModel.onUpdateLaterClick()
+
+        assertNull(viewModel.uiState.value.pendingUpdate)
+    }
+
+    @Test
+    fun `when update is clicked, then opener receives release url and pending update is cleared`() = runTest {
+        val opener = FakeUpdateOpener()
+        val viewModel = createViewModel(
+            checkForAppUpdate = availableUpdateChecker(),
+            updateOpener = opener,
+        )
+        advanceUntilIdle()
+
+        viewModel.onUpdateClick()
+
+        assertEquals(
+            listOf("https://github.com/example/repo/releases/tag/v1.1.0"),
+            opener.openedUrls,
+        )
+        assertNull(viewModel.uiState.value.pendingUpdate)
+    }
+
+    @Test
+    fun `when alarm is active, then update dialog is not shown`() = runTest {
+        val store = InMemoryUpdateCheckAttemptStore()
+        val viewModel = createViewModel(
+            alarmController = FakeAlarmController(
+                initialState = AlarmState.Active(AlarmStartReason.SystemLowBattery),
+            ),
+            checkForAppUpdate = availableUpdateChecker(store = store),
+            updateCheckAttemptStore = store,
+        )
+
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.pendingUpdate)
+        assertEquals("1.1.0", store.pendingUpdate?.versionName)
+    }
+
+    @Test
+    fun `when relaunching within interval, then persisted pending update is shown again`() = runTest {
+        val store = InMemoryUpdateCheckAttemptStore(
+            lastCheckAttemptAtMillis = 500L,
+            pendingUpdate = AppUpdate(
+                versionName = "1.1.0",
+                releaseNotes = "Notes",
+                releasePageUrl = "https://github.com/example/repo/releases/tag/v1.1.0",
+            ),
+        )
+        val viewModel = createViewModel(
+            checkForAppUpdate = pendingWithinIntervalChecker(store),
+            updateCheckAttemptStore = store,
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(
+            AppUpdateUiModel(
+                versionName = "1.1.0",
+                releaseNotes = "Notes",
+                releasePageUrl = "https://github.com/example/repo/releases/tag/v1.1.0",
+            ),
+            viewModel.uiState.value.pendingUpdate,
+        )
+    }
+
+    @Test
+    fun `when later is clicked, then persisted pending update is cleared`() = runTest {
+        val store = InMemoryUpdateCheckAttemptStore()
+        val viewModel = createViewModel(
+            checkForAppUpdate = availableUpdateChecker(store = store),
+            updateCheckAttemptStore = store,
+        )
+        advanceUntilIdle()
+
+        viewModel.onUpdateLaterClick()
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.pendingUpdate)
+        assertNull(store.pendingUpdate)
+    }
+}
+
+private class InMemoryUpdateCheckAttemptStore(
+    var lastCheckAttemptAtMillis: Long? = null,
+    var pendingUpdate: AppUpdate? = null,
+) : UpdateCheckAttemptStore {
+    override suspend fun getLastCheckAttemptAtMillis(): Long? = lastCheckAttemptAtMillis
+
+    override suspend fun setLastCheckAttemptAtMillis(epochMillis: Long) {
+        lastCheckAttemptAtMillis = epochMillis
+    }
+
+    override suspend fun getPendingUpdate(): AppUpdate? = pendingUpdate
+
+    override suspend fun setPendingUpdate(update: AppUpdate) {
+        pendingUpdate = update
+    }
+
+    override suspend fun clearPendingUpdate() {
+        pendingUpdate = null
+    }
+}
+
+private class FakeUpdateOpener : UpdateOpener {
+    val openedUrls = mutableListOf<String>()
+
+    override fun openReleasePage(url: String) {
+        openedUrls += url
     }
 }
 
