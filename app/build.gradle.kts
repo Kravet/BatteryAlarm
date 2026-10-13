@@ -1,9 +1,33 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+}
+
+fun signingProperty(name: String, envName: String): String? {
+    val fromFile = keystoreProperties.getProperty(name)?.takeIf { it.isNotBlank() }
+    if (fromFile != null) return fromFile
+    return System.getenv(envName)?.takeIf { it.isNotBlank() }
+}
+
+val releaseStoreFilePath = signingProperty("storeFile", "BATTERYALARM_STORE_FILE")
+val releaseStorePassword = signingProperty("storePassword", "BATTERYALARM_STORE_PASSWORD")
+val releaseKeyAlias = signingProperty("keyAlias", "BATTERYALARM_KEY_ALIAS")
+val releaseKeyPassword = signingProperty("keyPassword", "BATTERYALARM_KEY_PASSWORD")
+val hasReleaseSigning =
+    !releaseStoreFilePath.isNullOrBlank() &&
+        !releaseStorePassword.isNullOrBlank() &&
+        !releaseKeyAlias.isNullOrBlank() &&
+        !releaseKeyPassword.isNullOrBlank()
 
 android {
     namespace = "com.example.batteryalarm"
@@ -14,19 +38,33 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.batteryalarm"
+        applicationId = "com.kravets.batteryalarm"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseStoreFilePath!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {

@@ -5,6 +5,13 @@
 # Local Android configuration
 local.properties
 
+# Release signing (never commit credentials or keystores)
+*.jks
+*.keystore
+keystore.properties
+*.pepk
+keystore/
+
 # Android Studio / IntelliJ
 .idea/
 *.iml

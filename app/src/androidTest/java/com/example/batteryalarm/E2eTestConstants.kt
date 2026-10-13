@@ -1,7 +1,7 @@
 package com.example.batteryalarm
 
 object E2eTestConstants {
-    const val PACKAGE_NAME = "com.example.batteryalarm"
+    const val PACKAGE_NAME = "com.kravets.batteryalarm"
     const val ALARM_TITLE = "Low battery alarm"
     const val ALARM_SCREEN_TITLE = "Low Battery"
     const val DISMISS_LABEL = "Dismiss"
