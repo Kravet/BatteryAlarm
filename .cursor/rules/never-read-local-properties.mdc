@@ -1,0 +1,23 @@
+---
+description: Never read contents of local/secret properties files
+alwaysApply: true
+---
+
+# Never read local properties
+
+Do **not** read, open, print, quote, or summarize the contents of local or secret properties files, including:
+
+- `local.properties`
+- `keystore.properties`
+- Any `**/local.properties` or `**/keystore.properties`
+
+Also do not dump secrets from related backup copies (e.g. under `~/keystores/`).
+
+You may:
+
+- Confirm that such a file **exists**
+- Confirm it is **gitignored**
+- Edit **templates** like `keystore.properties.example` (no real secrets)
+- Reference property **key names** only (`storeFile`, `sdk.dir`, etc.) without values
+
+If a task seems to require reading these files, stop and ask the user to handle secrets themselves.
