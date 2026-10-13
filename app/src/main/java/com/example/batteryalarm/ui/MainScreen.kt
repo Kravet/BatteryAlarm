@@ -24,7 +24,6 @@ fun MainScreen(
     onAlarmToggleClick: () -> Unit,
     onTestAlarmClick: () -> Unit,
     onUpdateClick: () -> Unit = {},
-    onUpdateLaterClick: () -> Unit = {},
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -46,16 +45,9 @@ fun MainScreen(
                 uiState = uiState,
                 onAlarmToggleClick = onAlarmToggleClick,
                 onTestAlarmClick = onTestAlarmClick,
+                onUpdateClick = onUpdateClick,
             )
         }
-    }
-
-    uiState.pendingUpdate?.let { pendingUpdate ->
-        UpdateAvailableDialog(
-            update = pendingUpdate,
-            onUpdateClick = onUpdateClick,
-            onLaterClick = onUpdateLaterClick,
-        )
     }
 }
 

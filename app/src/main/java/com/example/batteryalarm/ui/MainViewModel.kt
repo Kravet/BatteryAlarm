@@ -129,13 +129,6 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun onUpdateLaterClick() {
-        _uiState.update { it.copy(pendingUpdate = null) }
-        viewModelScope.launch {
-            updateCheckAttemptStore.clearPendingUpdate()
-        }
-    }
-
     private suspend fun runUpdateCheck() {
         try {
             when (val result = checkForAppUpdate()) {

@@ -10,16 +10,15 @@ import com.example.batteryalarm.domain.update.UpdateCheckResult
 import com.example.batteryalarm.domain.update.UpdateCheckerEnabled
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
  * E2E/UI scenario (mocked remote): open-app update flow without real GitHub API.
- * Covers dialog availability, Later dismiss, and Update URL hand-off.
+ * Covers update availability for the inline button and Update URL hand-off.
  */
 class UpdateCheckUiScenarioTest {
     @Test
-    fun `open app with newer release yields available update for dialog`() = runTest {
+    fun `open app with newer release yields available update for inline button`() = runTest {
         val releaseUrl = "https://github.com/PLACEHOLDER_OWNER/PLACEHOLDER_REPOSITORY/releases/tag/v1.1.0"
         val checker = CheckForAppUpdate(
             isEnabled = UpdateCheckerEnabled { true },
@@ -47,24 +46,6 @@ class UpdateCheckUiScenarioTest {
             ),
             result,
         )
-    }
-
-    @Test
-    fun `later clears pending update from ui state model`() {
-        val pending = AppUpdateUiModel(
-            versionName = "1.1.0",
-            releaseNotes = "Notes",
-            releasePageUrl = "https://example.com/release",
-        )
-        var state = MainUiState.from(
-            alarmEnabled = false,
-            isTestAlarmPending = false,
-            pendingUpdate = pending,
-        )
-
-        state = state.copy(pendingUpdate = null)
-
-        assertNull(state.pendingUpdate)
     }
 
     @Test

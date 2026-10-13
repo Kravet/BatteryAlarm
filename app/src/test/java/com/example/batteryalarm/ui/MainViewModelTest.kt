@@ -336,18 +336,6 @@ class MainViewModelTest {
     }
 
     @Test
-    fun `when later is clicked, then pending update is cleared`() = runTest {
-        val viewModel = createViewModel(
-            checkForAppUpdate = availableUpdateChecker(),
-        )
-        advanceUntilIdle()
-
-        viewModel.onUpdateLaterClick()
-
-        assertNull(viewModel.uiState.value.pendingUpdate)
-    }
-
-    @Test
     fun `when update is clicked, then opener receives release url and pending update is cleared`() = runTest {
         val opener = FakeUpdateOpener()
         val viewModel = createViewModel(
@@ -366,7 +354,7 @@ class MainViewModelTest {
     }
 
     @Test
-    fun `when alarm is active, then update dialog is not shown`() = runTest {
+    fun `when alarm is active, then update button is not shown`() = runTest {
         val store = InMemoryUpdateCheckAttemptStore()
         val viewModel = createViewModel(
             alarmController = FakeAlarmController(
@@ -410,7 +398,7 @@ class MainViewModelTest {
     }
 
     @Test
-    fun `when later is clicked, then persisted pending update is cleared`() = runTest {
+    fun `when update is clicked, then persisted pending update is cleared`() = runTest {
         val store = InMemoryUpdateCheckAttemptStore()
         val viewModel = createViewModel(
             checkForAppUpdate = availableUpdateChecker(store = store),
@@ -418,7 +406,7 @@ class MainViewModelTest {
         )
         advanceUntilIdle()
 
-        viewModel.onUpdateLaterClick()
+        viewModel.onUpdateClick()
         advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.pendingUpdate)

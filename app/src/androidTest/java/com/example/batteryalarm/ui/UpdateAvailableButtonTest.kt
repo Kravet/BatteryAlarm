@@ -18,11 +18,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Emulator-visible UI tests: mock “new version available” and assert the update dialog
- * on MainScreen. No real GitHub API.
+ * Emulator-visible UI tests: mock “new version available” and assert the inline update
+ * button on MainScreen. No real GitHub API.
  */
 @RunWith(AndroidJUnit4::class)
-class UpdateAvailableDialogTest {
+class UpdateAvailableButtonTest {
     @get:Rule
     val composeRule = createComposeRule()
 
@@ -33,7 +33,7 @@ class UpdateAvailableDialogTest {
     )
 
     @Test
-    fun when_new_version_is_mocked_then_update_dialog_is_shown_on_main_screen() {
+    fun when_new_version_is_mocked_then_update_button_is_shown_on_main_screen() {
         composeRule.setContent {
             BatteryAlarmTheme {
                 MainScreen(
@@ -51,41 +51,34 @@ class UpdateAvailableDialogTest {
 
         composeRule.onNodeWithText("Battery Alarm 1.1.0 is available").assertIsDisplayed()
         composeRule.onNodeWithText("A new version of Battery Alarm is available.").assertIsDisplayed()
-        composeRule.onNodeWithText("What's new").assertIsDisplayed()
-        composeRule.onNodeWithText("Improved battery monitoring").assertIsDisplayed()
         composeRule.onNodeWithText("Update").assertIsDisplayed()
-        composeRule.onNodeWithText("Later").assertIsDisplayed()
-        // Main content remains under the dialog.
         composeRule.onNodeWithText("Test alarm").assertIsDisplayed()
     }
 
     @Test
-    fun later_clears_update_dialog_from_main_screen() {
+    fun when_no_pending_update_then_update_button_is_hidden() {
         composeRule.setContent {
             BatteryAlarmTheme {
-                var pending by remember { mutableStateOf<AppUpdateUiModel?>(fakeUpdate) }
                 MainScreen(
                     uiState = MainUiState.from(
                         alarmEnabled = false,
                         isTestAlarmPending = false,
-                        pendingUpdate = pending,
+                        pendingUpdate = null,
                     ),
                     snackbarHostState = remember { SnackbarHostState() },
                     onAlarmToggleClick = {},
                     onTestAlarmClick = {},
-                    onUpdateLaterClick = { pending = null },
                 )
             }
         }
 
-        composeRule.onNodeWithText("Battery Alarm 1.1.0 is available").assertIsDisplayed()
-        composeRule.onNodeWithText("Later").performClick()
         composeRule.onNodeWithText("Battery Alarm 1.1.0 is available").assertDoesNotExist()
+        composeRule.onNodeWithText("Update").assertDoesNotExist()
         composeRule.onNodeWithText("Test alarm").assertIsDisplayed()
     }
 
     @Test
-    fun update_invokes_action_with_release_url_and_can_dismiss_dialog() {
+    fun update_invokes_action_with_release_url_and_hides_button() {
         var openedUrl: String? = null
         composeRule.setContent {
             BatteryAlarmTheme {
@@ -113,14 +106,13 @@ class UpdateAvailableDialogTest {
     }
 
     @Test
-    fun update_dialog_alone_shows_version_and_actions() {
+    fun update_button_alone_shows_version_and_invokes_action() {
         var updateClicked = false
         composeRule.setContent {
             BatteryAlarmTheme {
-                UpdateAvailableDialog(
+                UpdateAvailableButton(
                     update = fakeUpdate,
                     onUpdateClick = { updateClicked = true },
-                    onLaterClick = {},
                 )
             }
         }

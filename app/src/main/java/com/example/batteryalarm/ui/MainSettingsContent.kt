@@ -98,6 +98,7 @@ fun MainSettingsContent(
     uiState: MainUiState,
     onAlarmToggleClick: () -> Unit,
     onTestAlarmClick: () -> Unit,
+    onUpdateClick: () -> Unit = {},
 ) {
     val isEnabled = uiState.isEnabled
     val toggleContentDescription = stringResource(uiState.toggleContentDescriptionRes)
@@ -117,6 +118,13 @@ fun MainSettingsContent(
             contentDescription = toggleContentDescription,
             onClick = onAlarmToggleClick,
         )
+
+        uiState.pendingUpdate?.let { pendingUpdate ->
+            UpdateAvailableButton(
+                update = pendingUpdate,
+                onUpdateClick = onUpdateClick,
+            )
+        }
 
         TestAlarmButtonSection(
             uiState = uiState,

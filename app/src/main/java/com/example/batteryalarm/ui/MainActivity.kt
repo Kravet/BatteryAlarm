@@ -95,7 +95,6 @@ class MainActivity : ComponentActivity() {
                     },
                     onTestAlarmClick = viewModel::onTestAlarmClick,
                     onUpdateClick = viewModel::onUpdateClick,
-                    onUpdateLaterClick = viewModel::onUpdateLaterClick,
                 )
             }
         }
