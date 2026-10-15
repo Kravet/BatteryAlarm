@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "505443291215",
+    "project_id": "battery-alarm-a0461",
+    "storage_bucket": "battery-alarm-a0461.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:505443291215:android:4b58698e85948141661a3a",
+        "android_client_info": {
+          "package_name": "com.kravets.batteryalarm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBoBAs1fxkNtax8NI5FaailJoWTLxTGlac"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

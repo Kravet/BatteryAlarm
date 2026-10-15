@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
+import com.example.batteryalarm.BuildConfig
 import com.example.batteryalarm.R
 import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
 import com.example.batteryalarm.ui.theme.BrandGreen
@@ -131,6 +132,19 @@ fun MainSettingsContent(
             buttonText = testAlarmButtonText,
             onClick = onTestAlarmClick,
         )
+
+        if (BuildConfig.DEBUG) {
+            TextButton(
+                onClick = { throw RuntimeException("Test Crash") },
+            ) {
+                Text(
+                    text = stringResource(R.string.test_crash),
+                    color = ProtectionOffAccent,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        }
     }
 }
 
