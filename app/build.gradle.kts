@@ -111,6 +111,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
     ksp(libs.hilt.compiler)
     // Hilt 2.59.2 ships kotlin-metadata-jvm that only reads up to 2.3.0.
     ksp(libs.kotlin.metadata.jvm)
