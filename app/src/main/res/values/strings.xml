@@ -27,4 +27,5 @@
     <string name="update_available_title">Battery Alarm %1$s is available</string>
     <string name="update_available_body">A new version of Battery Alarm is available.</string>
     <string name="update_action_update">Update</string>
+    <string name="privacy_policy">Privacy Policy</string>
 </resources>

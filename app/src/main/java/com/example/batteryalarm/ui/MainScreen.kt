@@ -18,9 +18,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.batteryalarm.privacy.PrivacyPolicyLinks
 import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
 
 /** Fraction of viewport height to shift the main block above center. */
@@ -37,7 +39,12 @@ fun MainScreen(
     onAlarmToggleClick: () -> Unit,
     onTestAlarmClick: () -> Unit,
     onUpdateClick: () -> Unit = {},
+    onPrivacyPolicyClick: (() -> Unit)? = null,
 ) {
+    val uriHandler = LocalUriHandler.current
+    val openPrivacyPolicy = onPrivacyPolicyClick
+        ?: { uriHandler.openUri(PrivacyPolicyLinks.PUBLIC_URL) }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         snackbarHost = {
@@ -77,6 +84,7 @@ fun MainScreen(
                         onAlarmToggleClick = onAlarmToggleClick,
                         onTestAlarmClick = onTestAlarmClick,
                         onUpdateClick = onUpdateClick,
+                        onPrivacyPolicyClick = openPrivacyPolicy,
                     )
                 }
             }
