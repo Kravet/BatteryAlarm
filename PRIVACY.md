@@ -197,4 +197,3 @@ The canonical public copy is intended to remain available from the public distri
 
 (Rendered view: https://github.com/Kravet/battery-alarm-releases/blob/main/PRIVACY.md)
 
-Until that file is published to `Kravet/battery-alarm-releases`, the URL above may not resolve.
