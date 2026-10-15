@@ -5,6 +5,8 @@ import com.example.batteryalarm.alarm.AndroidAlarmNotifier
 import com.example.batteryalarm.alarm.AndroidAlarmSoundPlayer
 import com.example.batteryalarm.alarm.AndroidAlarmVibrator
 import com.example.batteryalarm.alarm.AndroidBatteryLowMonitoring
+import com.example.batteryalarm.analytics.AnalyticsAlarmController
+import com.example.batteryalarm.analytics.AppAnalytics
 import com.example.batteryalarm.domain.AlarmController
 import com.example.batteryalarm.domain.AlarmNotifier
 import com.example.batteryalarm.domain.AlarmSettingsCoordinator
@@ -88,10 +90,14 @@ object AlarmModule {
         soundPlayer: AlarmSoundPlayer,
         vibrator: AlarmVibrator,
         notifier: AlarmNotifier,
-    ): AlarmController = DefaultAlarmController(
-        settingsRepository = settingsRepository,
-        soundPlayer = soundPlayer,
-        vibrator = vibrator,
-        notifier = notifier,
+        analytics: AppAnalytics,
+    ): AlarmController = AnalyticsAlarmController(
+        delegate = DefaultAlarmController(
+            settingsRepository = settingsRepository,
+            soundPlayer = soundPlayer,
+            vibrator = vibrator,
+            notifier = notifier,
+        ),
+        analytics = analytics,
     )
 }

@@ -1,6 +1,7 @@
 package com.example.batteryalarm.ui
 
 import com.example.batteryalarm.alarm.BatteryLowAlarmHandler
+import com.example.batteryalarm.analytics.FakeAppAnalytics
 import com.example.batteryalarm.domain.AlarmController
 import com.example.batteryalarm.domain.AlarmStartReason
 import com.example.batteryalarm.domain.AlarmStartResult
@@ -56,6 +57,7 @@ class MainViewModelTest {
         checkForAppUpdate: CheckForAppUpdate = disabledUpdateChecker(),
         updateCheckAttemptStore: UpdateCheckAttemptStore = InMemoryUpdateCheckAttemptStore(),
         updateOpener: FakeUpdateOpener = FakeUpdateOpener(),
+        analytics: FakeAppAnalytics = FakeAppAnalytics(),
     ): MainViewModel {
         val handler = BatteryLowAlarmHandler(
             alarmController = alarmController,
@@ -68,6 +70,7 @@ class MainViewModelTest {
             checkForAppUpdate = checkForAppUpdate,
             updateCheckAttemptStore = updateCheckAttemptStore,
             updateOpener = updateOpener,
+            analytics = analytics,
         )
     }
 

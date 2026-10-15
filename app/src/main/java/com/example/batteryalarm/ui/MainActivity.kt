@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
                     if (granted) {
                         viewModel.onAlarmToggleClick()
                     } else {
+                        viewModel.onNotificationPermissionDenied()
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar(
                                 message = notificationPermissionDeniedMessage,

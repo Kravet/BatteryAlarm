@@ -3,6 +3,7 @@ package com.example.batteryalarm.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.batteryalarm.alarm.BatteryLowAlarmHandler
+import com.example.batteryalarm.analytics.AppAnalytics
 import com.example.batteryalarm.domain.AlarmController
 import com.example.batteryalarm.domain.AlarmSettingsRepository
 import com.example.batteryalarm.domain.AlarmState
@@ -32,6 +33,7 @@ class MainViewModel @Inject constructor(
     private val checkForAppUpdate: CheckForAppUpdate,
     private val updateCheckAttemptStore: UpdateCheckAttemptStore,
     private val updateOpener: UpdateOpener,
+    private val analytics: AppAnalytics,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MainUiState.from(alarmEnabled = false, isTestAlarmPending = false))
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -71,6 +73,7 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 alarmSettingsRepository.toggleAlarmEnabled()
+                analytics.logAlarmToggled(enabled = alarmSettingsRepository.isAlarmEnabled())
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
@@ -79,11 +82,16 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun onNotificationPermissionDenied() {
+        analytics.logNotificationPermissionDenied()
+    }
+
     fun onTestAlarmClick() {
         if (_uiState.value.isTestAlarmPending) {
             return
         }
 
+        analytics.logTestAlarmStarted()
         _uiState.update {
             it.copy(
                 isTestAlarmPending = true,
@@ -108,6 +116,7 @@ class MainViewModel @Inject constructor(
                 }
             },
             onFailed = {
+                analytics.logTestAlarmFailed()
                 _uiState.update {
                     it.copy(
                         isTestAlarmPending = false,
@@ -123,6 +132,7 @@ class MainViewModel @Inject constructor(
 
     fun onUpdateClick() {
         val pending = _uiState.value.pendingUpdate ?: return
+        analytics.logUpdateClicked(version = pending.versionName)
         updateOpener.openReleasePage(pending.releasePageUrl)
         _uiState.update { it.copy(pendingUpdate = null) }
         viewModelScope.launch {
@@ -140,8 +150,10 @@ class MainViewModel @Inject constructor(
                             "url=${result.update.releasePageUrl} alarmActive=${isAlarmActive()}",
                     )
                     if (!isAlarmActive()) {
+                        val update = AppUpdateUiModel.from(result.update)
+                        analytics.logUpdateAvailableShown(version = update.versionName)
                         _uiState.update { current ->
-                            current.copy(pendingUpdate = AppUpdateUiModel.from(result.update))
+                            current.copy(pendingUpdate = update)
                         }
                     }
                 }
