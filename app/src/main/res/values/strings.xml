@@ -14,7 +14,6 @@
     <string name="enable_battery_alarm">Enable battery alarm</string>
     <string name="disable_battery_alarm">Disable battery alarm</string>
     <string name="test_the_sound">Test alarm</string>
-    <string name="test_crash">Test Crash</string>
     <string name="test_alarm_countdown">Test alarm in %1$ds</string>
     <string name="test_alarm_lock_screen_hint">Lock your phone now to test the alarm on the lock screen.</string>
     <string name="main_title">Battery Alarm</string>
