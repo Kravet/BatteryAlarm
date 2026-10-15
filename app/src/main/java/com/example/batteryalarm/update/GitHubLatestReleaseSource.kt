@@ -17,6 +17,7 @@ class GitHubLatestReleaseSource(
     override suspend fun fetchLatestStableRelease(): LatestStableRelease? = withContext(Dispatchers.IO) {
         val url =
             "${updateConfig.githubApiBase}/repos/${updateConfig.githubOwner}/${updateConfig.githubRepo}/releases/latest"
+        UpdateCheckLog.d("fetchLatestStableRelease GET $url")
         val request = Request.Builder()
             .url(url)
             .header("Accept", "application/vnd.github+json")
@@ -26,18 +27,31 @@ class GitHubLatestReleaseSource(
 
         try {
             okHttpClient.newCall(request).execute().use { response ->
+                val code = response.code
                 if (!response.isSuccessful) {
+                    UpdateCheckLog.w("fetchLatestStableRelease HTTP $code")
                     return@withContext null
                 }
                 val body = response.body?.string().orEmpty()
                 if (body.isBlank()) {
+                    UpdateCheckLog.w("fetchLatestStableRelease empty body (HTTP $code)")
                     return@withContext null
                 }
-                parseRelease(body)
+                val release = parseRelease(body)
+                if (release == null) {
+                    UpdateCheckLog.w("fetchLatestStableRelease parse failed (HTTP $code)")
+                } else {
+                    UpdateCheckLog.d(
+                        "fetchLatestStableRelease ok tag=${release.tagName} url=${release.htmlUrl}",
+                    )
+                }
+                release
             }
-        } catch (_: IOException) {
+        } catch (exception: IOException) {
+            UpdateCheckLog.w("fetchLatestStableRelease IOException: ${exception.message}")
             null
-        } catch (_: Exception) {
+        } catch (exception: Exception) {
+            UpdateCheckLog.w("fetchLatestStableRelease error: ${exception.message}")
             null
         }
     }

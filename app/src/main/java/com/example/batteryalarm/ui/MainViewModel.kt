@@ -9,6 +9,7 @@ import com.example.batteryalarm.domain.AlarmState
 import com.example.batteryalarm.domain.update.CheckForAppUpdate
 import com.example.batteryalarm.domain.update.UpdateCheckAttemptStore
 import com.example.batteryalarm.domain.update.UpdateCheckResult
+import com.example.batteryalarm.update.UpdateCheckLog
 import com.example.batteryalarm.update.UpdateOpener
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -130,25 +131,31 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun runUpdateCheck() {
+        UpdateCheckLog.d("runUpdateCheck start")
         try {
             when (val result = checkForAppUpdate()) {
                 is UpdateCheckResult.Available -> {
+                    UpdateCheckLog.d(
+                        "runUpdateCheck Available version=${result.update.versionName} " +
+                            "url=${result.update.releasePageUrl} alarmActive=${isAlarmActive()}",
+                    )
                     if (!isAlarmActive()) {
                         _uiState.update { current ->
                             current.copy(pendingUpdate = AppUpdateUiModel.from(result.update))
                         }
                     }
                 }
-                UpdateCheckResult.Disabled,
-                UpdateCheckResult.SkippedWithinInterval,
-                UpdateCheckResult.UpToDate,
-                UpdateCheckResult.NoUsableRelease,
-                -> Unit
+                UpdateCheckResult.Disabled -> UpdateCheckLog.d("runUpdateCheck Disabled")
+                UpdateCheckResult.SkippedWithinInterval ->
+                    UpdateCheckLog.d("runUpdateCheck SkippedWithinInterval")
+                UpdateCheckResult.UpToDate -> UpdateCheckLog.d("runUpdateCheck UpToDate")
+                UpdateCheckResult.NoUsableRelease ->
+                    UpdateCheckLog.d("runUpdateCheck NoUsableRelease")
             }
         } catch (exception: CancellationException) {
             throw exception
-        } catch (_: Exception) {
-            // Auto update checks fail silently.
+        } catch (exception: Exception) {
+            UpdateCheckLog.w("runUpdateCheck failed: ${exception.message}")
         }
     }
 }
