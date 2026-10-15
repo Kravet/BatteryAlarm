@@ -35,7 +35,17 @@ Do not create a release until a real, signed APK is ready. No APK release is cur
 
 The source currently declares application ID `com.kravets.batteryalarm`, `versionCode` `1`, and `versionName` `1.0.0`. Every update APK must use the same application ID and a version code greater than the installed version. Android also requires an update to be signed by the same signing key, or a valid signing-key lineage. Preserve the production signing key securely; never commit or document key material or passwords. Verify the signing certificate of every release build before upload.
 
-Before moving distribution to Google Play, confirm the Play app's package name and signing certificate strategy preserve update compatibility for people who installed a sideloaded APK. If Play App Signing changes which certificate signs delivered APKs, plan the transition before publishing there.
+### Google Play (future) — keep sideload upgrades working
+
+People who installed a GitHub/sideload APK can later update from Google Play only if the certificate on the device matches Play's **app signing key**. Use this strategy when first publishing to Play:
+
+1. Keep one application ID: `com.kravets.batteryalarm`.
+2. Sign every public GitHub/sideload release APK with the same production keystore used today (the release `.jks` configured via `keystore.properties` / `BATTERYALARM_*`).
+3. On first Play listing, enable Play App Signing and **import that existing production release key as the app signing key**. Do not let Google generate a new app signing key for this package if sideloaded users should be able to upgrade in place.
+4. Create a separate **upload key** for signing AABs uploaded to Play Console. Use the upload key only for Play uploads; do not sign public GitHub APKs with it.
+5. Keep an offline backup of the production keystore and store passwords outside the repository. Never commit `.jks` files, passwords, or `keystore.properties`.
+
+If Play is enrolled with a Google-generated app signing key instead, devices with the sideloaded APK will not accept Play updates without uninstalling (or a different package name).
 
 ## Future Update Checker
 
