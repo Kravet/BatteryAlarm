@@ -193,7 +193,7 @@ We may update this Privacy Policy when the Appâ€™s data practices change. The â€
 
 The canonical public copy is intended to remain available from the public distribution repository even if the source repository becomes private:
 
-**https://raw.githubusercontent.com/Kravet/battery-alarm-releases/main/PRIVACY.md**
+**https://github.com/Kravet/battery-alarm-releases/blob/main/PRIVACY.md**
 
-(Rendered view: https://github.com/Kravet/battery-alarm-releases/blob/main/PRIVACY.md)
+(Plain text: https://raw.githubusercontent.com/Kravet/battery-alarm-releases/main/PRIVACY.md)
 

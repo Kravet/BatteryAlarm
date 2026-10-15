@@ -11,16 +11,17 @@ class PrivacyPolicyLinksTest {
         val uri = URI(PrivacyPolicyLinks.PUBLIC_URL)
 
         assertEquals("https", uri.scheme)
-        assertEquals("raw.githubusercontent.com", uri.host)
+        assertEquals("github.com", uri.host)
         assertEquals(
-            "/Kravet/battery-alarm-releases/main/PRIVACY.md",
+            "/Kravet/battery-alarm-releases/blob/main/PRIVACY.md",
             uri.path,
         )
     }
 
     @Test
-    fun `public url is a raw markdown document path`() {
+    fun `public url is a github rendered markdown path`() {
         assertTrue(PrivacyPolicyLinks.PUBLIC_URL.endsWith("/PRIVACY.md"))
         assertTrue(PrivacyPolicyLinks.PUBLIC_URL.startsWith("https://"))
+        assertTrue(PrivacyPolicyLinks.PUBLIC_URL.contains("/blob/main/"))
     }
 }

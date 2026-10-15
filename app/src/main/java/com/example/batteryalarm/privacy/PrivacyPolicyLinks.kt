@@ -5,5 +5,5 @@ package com.example.batteryalarm.privacy
  */
 object PrivacyPolicyLinks {
     const val PUBLIC_URL =
-        "https://raw.githubusercontent.com/Kravet/battery-alarm-releases/main/PRIVACY.md"
+        "https://github.com/Kravet/battery-alarm-releases/blob/main/PRIVACY.md"
 }
