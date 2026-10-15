@@ -46,10 +46,10 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // GitHub Releases update checker (placeholders until the public repo is wired).
-        buildConfigField("boolean", "UPDATE_CHECKER_ENABLED", "false")
-        buildConfigField("String", "UPDATE_GITHUB_OWNER", "\"PLACEHOLDER_OWNER\"")
-        buildConfigField("String", "UPDATE_GITHUB_REPO", "\"PLACEHOLDER_REPOSITORY\"")
+        // GitHub Releases update checker (Kravet/battery-alarm-releases).
+        buildConfigField("boolean", "UPDATE_CHECKER_ENABLED", "true")
+        buildConfigField("String", "UPDATE_GITHUB_OWNER", "\"Kravet\"")
+        buildConfigField("String", "UPDATE_GITHUB_REPO", "\"battery-alarm-releases\"")
         buildConfigField("String", "UPDATE_GITHUB_API_BASE", "\"https://api.github.com\"")
     }
 
