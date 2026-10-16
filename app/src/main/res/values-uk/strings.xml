@@ -28,4 +28,17 @@
     <string name="update_available_body">Доступна нова версія Battery Alarm.</string>
     <string name="update_action_update">Оновити</string>
     <string name="privacy_policy">Політика конфіденційності</string>
+    <string name="privacy_diagnostics">Конфіденційність і діагностика</string>
+    <string name="privacy_onboarding_title">Допоможіть покращити Battery Alarm</string>
+    <string name="privacy_analytics_title">Аналітика використання</string>
+    <string name="privacy_analytics_body">Допомагає зрозуміти, як використовуються функції. Не пов’язано з вашим ім’ям чи email.</string>
+    <string name="privacy_analytics_settings_body">Допомагає покращувати застосунок. Не пов’язано з вашим ім’ям чи email.</string>
+    <string name="privacy_crashlytics_title">Звіти про збої</string>
+    <string name="privacy_crashlytics_body">Допомагає виявляти та виправляти збої застосунку.</string>
+    <string name="privacy_crashlytics_settings_body">Допомагає діагностувати збої</string>
+    <string name="privacy_disclaimer">Ім’я чи email не збираються. Технічні дані обробляє Google.</string>
+    <string name="privacy_allow_both">Дозволити обидва</string>
+    <string name="privacy_decline_both">Відхилити обидва</string>
+    <string name="privacy_customize_choices">Налаштувати вибір</string>
+    <string name="privacy_save_choices">Зберегти вибір</string>
 </resources>
