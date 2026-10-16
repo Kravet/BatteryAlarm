@@ -138,7 +138,8 @@ fun MainSettingsContent(
             Text(
                 text = stringResource(R.string.privacy_policy),
                 color = TextMuted,
-                fontSize = 14.sp,
+                fontSize = MainSubtitleFontSizeSp.sp,
+                lineHeight = MainSubtitleLineHeightSp.sp,
                 fontWeight = FontWeight.Medium,
             )
         }

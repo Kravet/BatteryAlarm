@@ -1,6 +1,6 @@
 # Privacy Policy — Battery Alarm
 
-**Last updated:** 15 October 2026
+**Last updated:** 16 October 2026
 
 This Privacy Policy describes how the **Battery Alarm** Android application (“the App”) handles information. It is based on the App’s current implementation and third-party SDK behavior as documented by those providers.
 
@@ -15,11 +15,10 @@ This document is provided for transparency. It is **not** legal advice and does 
 | Application | Battery Alarm |
 | Android application ID | `com.kravets.batteryalarm` |
 | Public distribution | [Kravet/battery-alarm-releases](https://github.com/Kravet/battery-alarm-releases) |
-| Data controller | **[CONTROLLER_LEGAL_NAME]** |
-| Contact | **[SUPPORT_EMAIL]** |
-| Postal / registered address | **[CONTROLLER_ADDRESS — if applicable]** |
+| Data controller | Andrii Kravets |
+| Contact | kravetapp@gmail.com |
 
-If you have questions about this policy or your data, contact **[SUPPORT_EMAIL]**.
+If you have questions about this policy or your data, contact kravetapp@gmail.com.
 
 ---
 
@@ -109,18 +108,13 @@ Aside from Android / Jetpack libraries used for UI and local storage, the main n
 
 ## 7. Legal bases (EU / GDPR)
 
-**[LEGAL_BASIS — TO BE CONFIRMED BY CONTROLLER]**
+The App’s core battery monitoring and alarm functions operate locally on your device.
 
-For users in the EU/EEA (including Poland), processing of personal data generally requires a valid legal basis under GDPR Article 6. Common candidates for this App’s categories are:
+We use GitHub’s API to check for app updates, based on our legitimate interest in maintaining and improving the App (GDPR Article 6(1)(f)).
 
-| Processing | Candidate basis (unconfirmed) | Notes |
-| --- | --- | --- |
-| Local alarm functionality | Contract / legitimate interest in providing the feature you requested | Data stays on device |
-| Firebase Analytics (measurement / product analytics) | Often **consent** under ePrivacy + GDPR for analytics technologies | Current App collects **without** an in-app consent step — see Section 11 |
-| Firebase Crashlytics | May be argued as **legitimate interest** (stability) and/or **consent**, depending on counsel’s view and national ePrivacy rules | Current App collects **without** an in-app consent step |
-| GitHub update check | Legitimate interest / steps needed to provide updates | Limited technical request to a public API |
+Firebase Crashlytics is used to diagnose crashes and improve stability. Its legal basis and any applicable consent requirements have not yet been fully assessed.
 
-These candidate bases are **not** confirmed. The controller should obtain legal advice before relying on them, especially for EU analytics/crash telemetry started before consent.
+Firebase Analytics currently collects usage information without prior in-app consent. We have not established that this collection satisfies all applicable EU privacy requirements. This Privacy Policy does not replace any consent required by law.
 
 ---
 
@@ -128,7 +122,7 @@ These candidate bases are **not** confirmed. The controller should obtain legal 
 
 Google (Firebase / Google Analytics / Crashlytics) acts as a processor/service provider for analytics and crash reporting. Data may be processed on servers outside your country, including outside the EU/EEA.
 
-**[TRANSFER_MECHANISM — TO BE CONFIRMED]** (for example Google’s Data Processing terms / Standard Contractual Clauses — verify in your Firebase/Google Cloud contractual setup).
+Google publishes data processing terms and international transfer safeguards, including Standard Contractual Clauses and, where applicable, the EU–US Data Privacy Framework. We have not yet verified which specific mechanisms apply to all data processed through this App.
 
 GitHub, Inc. processes update-check requests as an independent controller or service provider when you or the App contact GitHub.
 
@@ -139,8 +133,8 @@ GitHub, Inc. processes update-check requests as an independent controller or ser
 | Data | Retention |
 | --- | --- |
 | Local App preferences | Until you clear App data, uninstall the App, or Android backup/restore replaces them |
-| Firebase Analytics | **[ANALYTICS_RETENTION — confirm in Google Analytics / Firebase settings; Google also documents product defaults]** |
-| Firebase Crashlytics | Google documents approximately 90 days for typical crash data; confirm current Google documentation and your project settings |
+| Firebase Analytics | Determined by the Google Analytics property settings, which have not yet been verified. Google documents configurable retention periods of 2 or 14 months for standard properties, depending on the data category. These settings do not determine the retention of standard aggregated reports. |
+| Firebase Crashlytics | Google documents approximately 90 days for typical crash data, after which Google begins a deletion process |
 | GitHub API logs | Controlled by GitHub, not by the App |
 
 ---
@@ -149,9 +143,17 @@ GitHub, Inc. processes update-check requests as an independent controller or ser
 
 If GDPR applies to you, you may have rights to access, rectify, erase, restrict, object to certain processing, and data portability, and the right to lodge a complaint with a supervisory authority (in Poland: the President of the Personal Data Protection Office — UODO).
 
-To exercise rights related to data the App developer controls, contact **[SUPPORT_EMAIL]**.
+To exercise rights related to data the App developer controls, contact kravetapp@gmail.com.
 
-For data held in Firebase/Google Analytics or Crashlytics, deletion or export may require the developer to use Google’s tools and may depend on identifiers Google associates with your app install. **[DELETION_PROCESS — describe what you can actually do after you verify Firebase capabilities; do not promise deletion you cannot perform.]**
+We review privacy requests received at kravetapp@gmail.com.
+
+The App does not maintain user accounts or a database linking email addresses to app installations.
+
+Where technically possible, we may use Google’s available tools to request deletion of data associated with an identifiable app installation. We cannot guarantee that an installation can be identified from an email request alone or that all historical data can be individually deleted.
+
+If we cannot complete a deletion request, we will explain the applicable limitations.
+
+Local App data can be removed by clearing the App’s data or uninstalling it, subject to any Android device backups.
 
 Uninstalling the App stops future local processing and typically stops new analytics/crash events from that installation, but does not by itself erase historical data already stored by Google.
 
@@ -173,13 +175,13 @@ Practical steps users can take today:
 
 - Stop using / uninstall the App.
 - Restrict the App’s network access via system settings (if available on your device/OEM), which may also break update checks.
-- Contact **[SUPPORT_EMAIL]** for privacy requests.
+- Contact kravetapp@gmail.com for privacy requests.
 
 ---
 
 ## 12. Children
 
-The App is not directed at children. **[CHILDREN_POLICY — confirm age gate / audience; no special children’s data collection was found in code.]**
+Battery Alarm is intended for general users and is not specifically directed at children.
 
 ---
 
