@@ -3,6 +3,7 @@ package com.example.batteryalarm
 import android.app.Instrumentation
 import android.content.Context
 import android.content.Intent
+import android.graphics.Rect
 import android.os.Build
 import android.os.SystemClock
 import androidx.test.uiautomator.By
@@ -169,12 +170,40 @@ class E2eTestActions(
     }
 
     fun tapTestAlarmButton() {
-        val testButton = device.wait(
-            Until.findObject(By.text(TEST_BUTTON)),
-            TIMEOUT_MS,
-        ) ?: error("Test alarm button was not visible")
-        testButton.click()
+        waitForMainScreen()
+        val deadline = SystemClock.uptimeMillis() + TIMEOUT_MS
+        while (SystemClock.uptimeMillis() < deadline) {
+            val testButton = device.findObject(By.text(TEST_BUTTON))
+            if (testButton != null && isFullyVisibleOnDisplay(testButton.visibleBounds)) {
+                testButton.click()
+                return
+            }
+            swipeMainScreenContentUp()
+            SystemClock.sleep(200)
+            instrumentation.waitForIdleSync()
+        }
+        error("Test alarm button was not visible")
     }
+
+    private fun swipeMainScreenContentUp() {
+        val width = device.displayWidth
+        val height = device.displayHeight
+        device.swipe(
+            width / 2,
+            (height * 0.70f).toInt(),
+            width / 2,
+            (height * 0.30f).toInt(),
+            25,
+        )
+    }
+
+    private fun isFullyVisibleOnDisplay(bounds: Rect): Boolean =
+        bounds.width() > 0 &&
+            bounds.height() > 0 &&
+            bounds.top >= 0 &&
+            bounds.bottom <= device.displayHeight &&
+            bounds.left >= 0 &&
+            bounds.right <= device.displayWidth
 
     fun tapAlarmToggleRapidly(count: Int) {
         require(count > 0) { "Tap count must be positive" }

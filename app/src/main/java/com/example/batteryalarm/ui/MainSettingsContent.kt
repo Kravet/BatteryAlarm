@@ -99,6 +99,7 @@ fun MainSettingsContent(
     onAlarmToggleClick: () -> Unit,
     onTestAlarmClick: () -> Unit,
     onUpdateClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
 ) {
     val isEnabled = uiState.isEnabled
     val toggleContentDescription = stringResource(uiState.toggleContentDescriptionRes)
@@ -107,7 +108,7 @@ fun MainSettingsContent(
     } ?: stringResource(R.string.test_the_sound)
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
