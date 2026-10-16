@@ -19,12 +19,24 @@ import com.example.batteryalarm.E2eTestConstants.DISMISS_LABEL
 import com.example.batteryalarm.E2eTestConstants.ENABLE_BUTTON
 import com.example.batteryalarm.E2eTestConstants.ENABLED_LABEL
 import com.example.batteryalarm.E2eTestConstants.PACKAGE_NAME
+import com.example.batteryalarm.E2eTestConstants.PRIVACY_ALLOW_BOTH
+import com.example.batteryalarm.E2eTestConstants.PRIVACY_ANALYTICS_TITLE
+import com.example.batteryalarm.E2eTestConstants.PRIVACY_CRASHLYTICS_TITLE
+import com.example.batteryalarm.E2eTestConstants.PRIVACY_CUSTOMIZE
+import com.example.batteryalarm.E2eTestConstants.PRIVACY_DECLINE_BOTH
+import com.example.batteryalarm.E2eTestConstants.PRIVACY_DIAGNOSTICS
+import com.example.batteryalarm.E2eTestConstants.PRIVACY_ONBOARDING_TITLE
+import com.example.batteryalarm.E2eTestConstants.PRIVACY_POLICY_LINK
+import com.example.batteryalarm.E2eTestConstants.PRIVACY_SAVE_CHOICES
 import com.example.batteryalarm.E2eTestConstants.STOP_LABEL
 import com.example.batteryalarm.E2eTestConstants.TEST_BUTTON
 import com.example.batteryalarm.E2eTestConstants.TIMEOUT_MS
 import com.example.batteryalarm.E2eTestConstants.TOGGLE_SETTLE_TIMEOUT_MS
+import com.example.batteryalarm.domain.privacy.PrivacyConsent
+import com.example.batteryalarm.privacy.DataStorePrivacyConsentRepository
 import com.example.batteryalarm.settings.AndroidAlarmSettingsRepository
 import java.io.File
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -73,9 +85,18 @@ class E2eTestActions(
 
     fun resetAppSettings() {
         File(context.filesDir, "datastore/alarm_settings.preferences_pb").delete()
+        File(context.filesDir, "datastore/privacy_consent.preferences_pb").delete()
     }
 
-    fun launchApp() {
+    fun clearPrivacyConsentForFreshPrompt() {
+        // Do not force-stop the app package: instrumentation runs in-process and would die.
+        runBlocking {
+            DataStorePrivacyConsentRepository(context).clearConsent()
+        }
+        instrumentation.waitForIdleSync()
+    }
+
+    fun launchApp(handlePrivacyOnboarding: Boolean = true) {
         val intent = context.packageManager.getLaunchIntentForPackage(PACKAGE_NAME)
             ?: error("Could not find launch intent for $PACKAGE_NAME")
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -84,7 +105,11 @@ class E2eTestActions(
             "App did not open",
             device.wait(Until.hasObject(By.pkg(PACKAGE_NAME).depth(0)), TIMEOUT_MS),
         )
-        waitForMainScreen()
+        waitForMainScreenOrPrivacyOnboarding()
+        if (handlePrivacyOnboarding) {
+            dismissPrivacyOnboardingIfVisible()
+            waitForMainScreen()
+        }
     }
 
     fun launchAppExpectingAlarmScreen() {
@@ -404,6 +429,176 @@ class E2eTestActions(
             SystemClock.sleep(200)
         }
         error("Main settings screen was not ready")
+    }
+
+    fun waitForMainScreenOrPrivacyOnboarding() {
+        val deadline = SystemClock.uptimeMillis() + TIMEOUT_MS
+        while (SystemClock.uptimeMillis() < deadline) {
+            if (isMainScreenVisible() || isPrivacyOnboardingVisible()) {
+                return
+            }
+            SystemClock.sleep(200)
+        }
+        error("Main settings screen or privacy onboarding was not ready")
+    }
+
+    fun waitForPrivacyOnboardingSheet() {
+        assertTrue(
+            "Privacy onboarding sheet was not shown",
+            device.wait(Until.hasObject(By.textContains(PRIVACY_ONBOARDING_TITLE)), TIMEOUT_MS),
+        )
+        assertTrue(
+            "Allow Both was not visible",
+            device.wait(Until.hasObject(By.text(PRIVACY_ALLOW_BOTH)), TIMEOUT_MS),
+        )
+        assertTrue(
+            "Decline Both was not visible",
+            device.hasObject(By.text(PRIVACY_DECLINE_BOTH)),
+        )
+    }
+
+    private fun isPrivacyOnboardingVisible(): Boolean =
+        device.hasObject(By.textContains(PRIVACY_ONBOARDING_TITLE)) &&
+            device.hasObject(By.text(PRIVACY_ALLOW_BOTH))
+
+    fun dismissPrivacyOnboardingIfVisible() {
+        if (!device.wait(Until.hasObject(By.textContains(PRIVACY_ONBOARDING_TITLE)), 1_000L)) {
+            return
+        }
+        val decline = device.wait(Until.findObject(By.text(PRIVACY_DECLINE_BOTH)), TIMEOUT_MS)
+            ?: error("Decline Both was not visible on privacy onboarding sheet")
+        decline.click()
+        assertTrue(
+            "Privacy onboarding sheet did not dismiss",
+            device.wait(Until.gone(By.textContains(PRIVACY_ONBOARDING_TITLE)), TIMEOUT_MS),
+        )
+    }
+
+    fun tapAllowBothPrivacy() {
+        waitForPrivacyOnboardingSheet()
+        device.wait(Until.findObject(By.text(PRIVACY_ALLOW_BOTH)), TIMEOUT_MS)!!.click()
+        assertTrue(
+            "Privacy onboarding sheet did not dismiss after Allow Both",
+            device.wait(Until.gone(By.textContains(PRIVACY_ONBOARDING_TITLE)), TIMEOUT_MS),
+        )
+    }
+
+    fun tapDeclineBothPrivacy() {
+        waitForPrivacyOnboardingSheet()
+        device.wait(Until.findObject(By.text(PRIVACY_DECLINE_BOTH)), TIMEOUT_MS)!!.click()
+        assertTrue(
+            "Privacy onboarding sheet did not dismiss after Decline Both",
+            device.wait(Until.gone(By.textContains(PRIVACY_ONBOARDING_TITLE)), TIMEOUT_MS),
+        )
+    }
+
+    fun customizePrivacyChoices(analyticsEnabled: Boolean, crashlyticsEnabled: Boolean) {
+        waitForPrivacyOnboardingSheet()
+        device.wait(Until.findObject(By.text(PRIVACY_CUSTOMIZE)), TIMEOUT_MS)!!.click()
+        assertTrue(
+            "Save Choices was not visible after Customize",
+            device.wait(Until.hasObject(By.text(PRIVACY_SAVE_CHOICES)), TIMEOUT_MS),
+        )
+        setPrivacySwitch(PRIVACY_ANALYTICS_TITLE, analyticsEnabled)
+        setPrivacySwitch(PRIVACY_CRASHLYTICS_TITLE, crashlyticsEnabled)
+        device.wait(Until.findObject(By.text(PRIVACY_SAVE_CHOICES)), TIMEOUT_MS)!!.click()
+        assertTrue(
+            "Privacy onboarding sheet did not dismiss after Save Choices",
+            device.wait(Until.gone(By.textContains(PRIVACY_ONBOARDING_TITLE)), TIMEOUT_MS),
+        )
+    }
+
+    fun openPrivacyDiagnostics() {
+        waitForMainScreen()
+        val deadline = SystemClock.uptimeMillis() + TIMEOUT_MS
+        while (SystemClock.uptimeMillis() < deadline) {
+            val entry = device.findObject(By.text(PRIVACY_DIAGNOSTICS))
+            if (entry != null && isFullyVisibleOnDisplay(entry.visibleBounds)) {
+                entry.click()
+                assertTrue(
+                    "Privacy diagnostics sheet was not shown",
+                    device.wait(Until.hasObject(By.text(PRIVACY_ANALYTICS_TITLE)), TIMEOUT_MS),
+                )
+                return
+            }
+            swipeMainScreenContentUp()
+            SystemClock.sleep(200)
+            instrumentation.waitForIdleSync()
+        }
+        error("Privacy & Diagnostics entry was not visible")
+    }
+
+    fun assertPrivacyDiagnosticsSwitches(analyticsEnabled: Boolean, crashlyticsEnabled: Boolean) {
+        assertTrue(
+            "Usage Analytics row missing",
+            device.wait(Until.hasObject(By.text(PRIVACY_ANALYTICS_TITLE)), TIMEOUT_MS),
+        )
+        assertTrue(
+            "Crash Reports row missing",
+            device.hasObject(By.text(PRIVACY_CRASHLYTICS_TITLE)),
+        )
+        assertEquals(analyticsEnabled, isPrivacySwitchChecked(PRIVACY_ANALYTICS_TITLE))
+        assertEquals(crashlyticsEnabled, isPrivacySwitchChecked(PRIVACY_CRASHLYTICS_TITLE))
+        assertTrue(
+            "Privacy Policy link missing",
+            device.hasObject(By.textContains(PRIVACY_POLICY_LINK)),
+        )
+    }
+
+    fun setPrivacyDiagnosticsSwitch(title: String, enabled: Boolean) {
+        setPrivacySwitch(title, enabled)
+    }
+
+    fun closePrivacySheetByBack() {
+        device.pressBack()
+        device.wait(Until.gone(By.text(PRIVACY_ALLOW_BOTH)), 1_000L)
+        device.wait(Until.gone(By.textContains(PRIVACY_ONBOARDING_TITLE)), 1_000L)
+    }
+
+    fun readPersistedPrivacyConsent(): PrivacyConsent = runBlocking {
+        DataStorePrivacyConsentRepository(context).consent.first()
+    }
+
+    fun assertPersistedPrivacyConsent(
+        analyticsEnabled: Boolean,
+        crashlyticsEnabled: Boolean,
+        decisionRecorded: Boolean = true,
+    ) {
+        val consent = readPersistedPrivacyConsent()
+        assertEquals(analyticsEnabled, consent.analyticsEnabled)
+        assertEquals(crashlyticsEnabled, consent.crashlyticsEnabled)
+        assertEquals(decisionRecorded, consent.decisionRecorded)
+    }
+
+    private fun setPrivacySwitch(title: String, enabled: Boolean) {
+        val deadline = SystemClock.uptimeMillis() + TIMEOUT_MS
+        while (SystemClock.uptimeMillis() < deadline) {
+            if (isPrivacySwitchChecked(title) == enabled) {
+                return
+            }
+            clickPrivacySwitch(title)
+            SystemClock.sleep(200)
+            instrumentation.waitForIdleSync()
+        }
+        assertEquals("Privacy switch '$title' state", enabled, isPrivacySwitchChecked(title))
+    }
+
+    private fun clickPrivacySwitch(title: String) {
+        val titleObject = device.wait(Until.findObject(By.text(title)), TIMEOUT_MS)
+            ?: error("Privacy row '$title' was not visible")
+        val bounds = titleObject.visibleBounds
+        // Tap near the trailing switch on the same row.
+        device.click(device.displayWidth - 80, bounds.centerY())
+    }
+
+    private fun isPrivacySwitchChecked(title: String): Boolean {
+        val titleObject = device.wait(Until.findObject(By.text(title)), TIMEOUT_MS)
+            ?: error("Privacy row '$title' was not visible")
+        val rowCenterY = titleObject.visibleBounds.centerY()
+        val switches = device.findObjects(By.checkable(true))
+        val nearest = switches.minByOrNull { kotlin.math.abs(it.visibleBounds.centerY() - rowCenterY) }
+            ?: error("No checkable switch found near '$title'")
+        return nearest.isChecked
     }
 
     fun waitForAlarmScreen() {

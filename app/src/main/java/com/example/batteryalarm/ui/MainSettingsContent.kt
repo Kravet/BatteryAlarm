@@ -99,7 +99,7 @@ fun MainSettingsContent(
     onAlarmToggleClick: () -> Unit,
     onTestAlarmClick: () -> Unit,
     onUpdateClick: () -> Unit = {},
-    onPrivacyPolicyClick: () -> Unit = {},
+    onPrivacyDiagnosticsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val isEnabled = uiState.isEnabled
@@ -134,9 +134,9 @@ fun MainSettingsContent(
             onClick = onTestAlarmClick,
         )
 
-        TextButton(onClick = onPrivacyPolicyClick) {
+        TextButton(onClick = onPrivacyDiagnosticsClick) {
             Text(
-                text = stringResource(R.string.privacy_policy),
+                text = stringResource(R.string.privacy_diagnostics),
                 color = TextMuted,
                 fontSize = MainSubtitleFontSizeSp.sp,
                 lineHeight = MainSubtitleLineHeightSp.sp,

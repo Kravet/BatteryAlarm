@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.batteryalarm.privacy.PrivacyPolicyLinks
+import com.example.batteryalarm.ui.privacy.PrivacyBottomSheet
 import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
 
 /** Fraction of viewport height to shift the main block above center. */
@@ -39,6 +40,13 @@ fun MainScreen(
     onAlarmToggleClick: () -> Unit,
     onTestAlarmClick: () -> Unit,
     onUpdateClick: () -> Unit = {},
+    onPrivacyDiagnosticsClick: () -> Unit = {},
+    onPrivacySheetDismiss: () -> Unit = {},
+    onAllowBothPrivacy: () -> Unit = {},
+    onDeclineBothPrivacy: () -> Unit = {},
+    onSaveCustomPrivacyChoices: (Boolean, Boolean) -> Unit = { _, _ -> },
+    onAnalyticsConsentChange: (Boolean) -> Unit = {},
+    onCrashlyticsConsentChange: (Boolean) -> Unit = {},
     onPrivacyPolicyClick: (() -> Unit)? = null,
 ) {
     val uriHandler = LocalUriHandler.current
@@ -84,11 +92,27 @@ fun MainScreen(
                         onAlarmToggleClick = onAlarmToggleClick,
                         onTestAlarmClick = onTestAlarmClick,
                         onUpdateClick = onUpdateClick,
-                        onPrivacyPolicyClick = openPrivacyPolicy,
+                        onPrivacyDiagnosticsClick = onPrivacyDiagnosticsClick,
                     )
                 }
             }
         }
+    }
+
+    val privacySheetMode = uiState.privacySheetMode
+    if (privacySheetMode != null) {
+        PrivacyBottomSheet(
+            mode = privacySheetMode,
+            analyticsEnabled = uiState.analyticsEnabled,
+            crashlyticsEnabled = uiState.crashlyticsEnabled,
+            onDismiss = onPrivacySheetDismiss,
+            onAllowBoth = onAllowBothPrivacy,
+            onDeclineBoth = onDeclineBothPrivacy,
+            onSaveCustomChoices = onSaveCustomPrivacyChoices,
+            onAnalyticsChange = onAnalyticsConsentChange,
+            onCrashlyticsChange = onCrashlyticsConsentChange,
+            onPrivacyPolicyClick = openPrivacyPolicy,
+        )
     }
 }
 

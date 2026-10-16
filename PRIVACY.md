@@ -30,11 +30,12 @@ This policy covers the Battery Alarm Android app distributed as a signed APK via
 
 ## 3. Summary
 
-- The App’s core alarm features run **on your device**.
-- The App uses **Firebase Analytics** and **Firebase Crashlytics** (Google). Those services transmit diagnostic and usage data to Google when the App runs.
+- The App’s core alarm features run **on your device** and work **without** Analytics or Crashlytics consent.
+- The App can use **Firebase Analytics** and **Firebase Crashlytics** (Google) only after you **opt in**. Collection is **disabled by default**.
+- Analytics and Crashlytics are independent choices (you can allow one, both, or neither).
+- On first use, the App shows an in-app privacy BottomSheet so you can Allow Both, Decline Both, or customize.
+- You can change or withdraw consent later under **Privacy & Diagnostics** in the App.
 - The App may contact **GitHub’s public API** to check for updates.
-- The App does **not** currently offer an in-app switch to turn analytics or crash reporting off.
-- Collection by Firebase SDKs begins when the App starts; there is **no in-app consent screen** before that collection in the current version.
 
 ---
 
@@ -45,6 +46,7 @@ The following stay on the device for App functionality (unless included in Andro
 | Data | Purpose |
 | --- | --- |
 | Alarm enabled / disabled preference | Control whether low-battery monitoring and alarms run |
+| Privacy consent preferences (Analytics / Crashlytics choices, decision timestamp, consent text version) | Remember your opt-in/opt-out and restore Firebase collection settings after restart |
 | Pending update check metadata (for example last check / pending release URL) | Update checker behavior |
 | Battery / charging state from Android system APIs | Detect low battery and power connection; play alarm |
 | Notification permission state | Show monitoring and alarm notifications |
@@ -112,9 +114,7 @@ The App’s core battery monitoring and alarm functions operate locally on your 
 
 We use GitHub’s API to check for app updates, based on our legitimate interest in maintaining and improving the App (GDPR Article 6(1)(f)).
 
-Firebase Crashlytics is used to diagnose crashes and improve stability. Its legal basis and any applicable consent requirements have not yet been fully assessed.
-
-Firebase Analytics currently collects usage information without prior in-app consent. We have not established that this collection satisfies all applicable EU privacy requirements. This Privacy Policy does not replace any consent required by law.
+Firebase Analytics and Firebase Crashlytics are used only when you give **affirmative opt-in** consent in the App (GDPR Article 6(1)(a), and where applicable ePrivacy consent for analytics technologies). You may withdraw consent at any time in **Privacy & Diagnostics**. Withdrawal stops further collection according to the Firebase SDK behavior; it does not guarantee deletion of data already transmitted to Google.
 
 ---
 
@@ -159,21 +159,23 @@ Uninstalling the App stops future local processing and typically stops new analy
 
 ---
 
-## 11. Consent, controls, and current limitations
+## 11. Consent and controls
 
-Current implementation facts:
+Implementation facts:
 
-1. Firebase Analytics and Crashlytics are initialized via standard Firebase / Google Services integration.
-2. There is **no** in-app privacy consent dialog before collection starts.
-3. There is **no** in-app setting to disable Analytics or Crashlytics.
-4. Advertising ID collection is disabled in the manifest.
-5. Debug and release builds use the same Firebase Analytics and Crashlytics dependencies; no separate “collection off in release” configuration was found.
+1. Firebase Analytics and Crashlytics collection are **disabled by default** in the App manifest until you opt in.
+2. On first launch (until you record a decision), the App shows a privacy BottomSheet: Allow Both, Decline Both, or Customize choices.
+3. Dismissing the sheet without a decision does **not** grant consent; collection remains off.
+4. You can open **Privacy & Diagnostics** anytime to turn Usage Analytics and Crash Reports on or off independently. Changes apply immediately.
+5. Consent choices are stored on device and restored after app restart.
+6. Advertising ID collection remains disabled in the manifest.
+7. Withdrawing Crashlytics consent disables further crash collection and asks the SDK to delete unsent local reports. Already transmitted data may remain subject to Google’s retention.
 
-**Implication for EU users:** if analytics and/or crash reporting require prior consent under applicable law, the current implementation may **not** meet that requirement until a consent or opt-in mechanism is added. See the accompanying engineering notes / product decision needed by the developer.
+Core alarm monitoring and alerts continue to work if you decline or withdraw consent.
 
-Practical steps users can take today:
+Other practical steps:
 
-- Stop using / uninstall the App.
+- Clear App data or uninstall the App to remove local preferences.
 - Restrict the App’s network access via system settings (if available on your device/OEM), which may also break update checks.
 - Contact kravetapp@gmail.com for privacy requests.
 

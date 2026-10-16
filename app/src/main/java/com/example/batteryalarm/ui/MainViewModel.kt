@@ -2,14 +2,18 @@ package com.example.batteryalarm.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.batteryalarm.R
 import com.example.batteryalarm.alarm.BatteryLowAlarmHandler
 import com.example.batteryalarm.analytics.AppAnalytics
 import com.example.batteryalarm.domain.AlarmController
 import com.example.batteryalarm.domain.AlarmSettingsRepository
 import com.example.batteryalarm.domain.AlarmState
+import com.example.batteryalarm.domain.privacy.PrivacyConsentRepository
 import com.example.batteryalarm.domain.update.CheckForAppUpdate
 import com.example.batteryalarm.domain.update.UpdateCheckAttemptStore
 import com.example.batteryalarm.domain.update.UpdateCheckResult
+import com.example.batteryalarm.privacy.FirebaseConsentApplier
+import com.example.batteryalarm.ui.privacy.PrivacySheetMode
 import com.example.batteryalarm.update.UpdateCheckLog
 import com.example.batteryalarm.update.UpdateOpener
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,6 +38,8 @@ class MainViewModel @Inject constructor(
     private val updateCheckAttemptStore: UpdateCheckAttemptStore,
     private val updateOpener: UpdateOpener,
     private val analytics: AppAnalytics,
+    private val privacyConsentRepository: PrivacyConsentRepository,
+    private val firebaseConsentApplier: FirebaseConsentApplier,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MainUiState.from(alarmEnabled = false, isTestAlarmPending = false))
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -42,6 +48,8 @@ class MainViewModel @Inject constructor(
         extraBufferCapacity = 1,
     )
     val sideEffects: SharedFlow<MainSideEffect> = _sideEffects.asSharedFlow()
+
+    private var onboardingDismissedThisSession = false
 
     init {
         viewModelScope.launch {
@@ -53,11 +61,43 @@ class MainViewModel @Inject constructor(
                 }
                 .collect { alarmEnabled ->
                     _uiState.update { currentState ->
-                        MainUiState.from(
-                            alarmEnabled = alarmEnabled,
-                            isTestAlarmPending = currentState.isTestAlarmPending,
-                            testAlarmSecondsRemaining = currentState.testAlarmSecondsRemaining,
-                            pendingUpdate = currentState.pendingUpdate,
+                        currentState.copy(
+                            isEnabled = alarmEnabled,
+                            toggleContentDescriptionRes = if (alarmEnabled) {
+                                R.string.disable_battery_alarm
+                            } else {
+                                R.string.enable_battery_alarm
+                            },
+                        )
+                    }
+                }
+        }
+        viewModelScope.launch {
+            privacyConsentRepository.consent
+                .catch { exception ->
+                    if (exception is CancellationException) {
+                        throw exception
+                    }
+                }
+                .collect { consent ->
+                    firebaseConsentApplier.apply(
+                        analyticsEnabled = consent.analyticsEnabled,
+                        crashlyticsEnabled = consent.crashlyticsEnabled,
+                    )
+                    _uiState.update { currentState ->
+                        val shouldShowOnboarding = !consent.decisionRecorded &&
+                            !onboardingDismissedThisSession &&
+                            currentState.privacySheetMode != PrivacySheetMode.SETTINGS
+                        currentState.copy(
+                            analyticsEnabled = consent.analyticsEnabled,
+                            crashlyticsEnabled = consent.crashlyticsEnabled,
+                            decisionRecorded = consent.decisionRecorded,
+                            privacySheetMode = when {
+                                consent.decisionRecorded &&
+                                    currentState.privacySheetMode == PrivacySheetMode.ONBOARDING -> null
+                                shouldShowOnboarding -> PrivacySheetMode.ONBOARDING
+                                else -> currentState.privacySheetMode
+                            },
                         )
                     }
                 }
@@ -137,6 +177,72 @@ class MainViewModel @Inject constructor(
         _uiState.update { it.copy(pendingUpdate = null) }
         viewModelScope.launch {
             updateCheckAttemptStore.clearPendingUpdate()
+        }
+    }
+
+    fun onPrivacyDiagnosticsClick() {
+        _uiState.update { it.copy(privacySheetMode = PrivacySheetMode.SETTINGS) }
+    }
+
+    fun onPrivacySheetDismiss() {
+        val mode = _uiState.value.privacySheetMode
+        if (mode == PrivacySheetMode.ONBOARDING && !_uiState.value.decisionRecorded) {
+            onboardingDismissedThisSession = true
+        }
+        _uiState.update { it.copy(privacySheetMode = null) }
+    }
+
+    fun onAllowBothPrivacy() {
+        persistConsent(analyticsEnabled = true, crashlyticsEnabled = true)
+    }
+
+    fun onDeclineBothPrivacy() {
+        persistConsent(analyticsEnabled = false, crashlyticsEnabled = false)
+    }
+
+    fun onSaveCustomPrivacyChoices(analyticsEnabled: Boolean, crashlyticsEnabled: Boolean) {
+        persistConsent(
+            analyticsEnabled = analyticsEnabled,
+            crashlyticsEnabled = crashlyticsEnabled,
+        )
+    }
+
+    fun onAnalyticsConsentChange(enabled: Boolean) {
+        persistConsent(
+            analyticsEnabled = enabled,
+            crashlyticsEnabled = _uiState.value.crashlyticsEnabled,
+        )
+    }
+
+    fun onCrashlyticsConsentChange(enabled: Boolean) {
+        persistConsent(
+            analyticsEnabled = _uiState.value.analyticsEnabled,
+            crashlyticsEnabled = enabled,
+        )
+    }
+
+    private fun persistConsent(analyticsEnabled: Boolean, crashlyticsEnabled: Boolean) {
+        viewModelScope.launch {
+            privacyConsentRepository.setConsent(
+                analyticsEnabled = analyticsEnabled,
+                crashlyticsEnabled = crashlyticsEnabled,
+            )
+            firebaseConsentApplier.apply(
+                analyticsEnabled = analyticsEnabled,
+                crashlyticsEnabled = crashlyticsEnabled,
+            )
+            _uiState.update {
+                it.copy(
+                    analyticsEnabled = analyticsEnabled,
+                    crashlyticsEnabled = crashlyticsEnabled,
+                    decisionRecorded = true,
+                    privacySheetMode = if (it.privacySheetMode == PrivacySheetMode.ONBOARDING) {
+                        null
+                    } else {
+                        it.privacySheetMode
+                    },
+                )
+            }
         }
     }
 

@@ -9,6 +9,7 @@ import com.example.batteryalarm.domain.AlarmSettingsRepository
 import com.example.batteryalarm.domain.AlarmState
 import com.example.batteryalarm.domain.AlarmStopReason
 import com.example.batteryalarm.domain.AlarmStopResult
+import com.example.batteryalarm.domain.privacy.PrivacyConsent
 import com.example.batteryalarm.domain.update.AppUpdate
 import com.example.batteryalarm.domain.update.CheckForAppUpdate
 import com.example.batteryalarm.domain.update.InstalledAppVersionName
@@ -16,6 +17,11 @@ import com.example.batteryalarm.domain.update.LatestStableRelease
 import com.example.batteryalarm.domain.update.LatestStableReleaseSource
 import com.example.batteryalarm.domain.update.UpdateCheckAttemptStore
 import com.example.batteryalarm.domain.update.UpdateCheckerEnabled
+import com.example.batteryalarm.privacy.FakeAnalyticsCollectionController
+import com.example.batteryalarm.privacy.FakeCrashlyticsCollectionController
+import com.example.batteryalarm.privacy.FirebaseConsentApplier
+import com.example.batteryalarm.privacy.InMemoryPrivacyConsentRepository
+import com.example.batteryalarm.ui.privacy.PrivacySheetMode
 import com.example.batteryalarm.update.UpdateOpener
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -58,6 +64,11 @@ class MainViewModelTest {
         updateCheckAttemptStore: UpdateCheckAttemptStore = InMemoryUpdateCheckAttemptStore(),
         updateOpener: FakeUpdateOpener = FakeUpdateOpener(),
         analytics: FakeAppAnalytics = FakeAppAnalytics(),
+        privacyConsentRepository: InMemoryPrivacyConsentRepository = InMemoryPrivacyConsentRepository(),
+        firebaseConsentApplier: FirebaseConsentApplier = FirebaseConsentApplier(
+            analyticsCollection = FakeAnalyticsCollectionController(),
+            crashlyticsCollection = FakeCrashlyticsCollectionController(),
+        ),
     ): MainViewModel {
         val handler = BatteryLowAlarmHandler(
             alarmController = alarmController,
@@ -71,6 +82,8 @@ class MainViewModelTest {
             updateCheckAttemptStore = updateCheckAttemptStore,
             updateOpener = updateOpener,
             analytics = analytics,
+            privacyConsentRepository = privacyConsentRepository,
+            firebaseConsentApplier = firebaseConsentApplier,
         )
     }
 
@@ -129,6 +142,112 @@ class MainViewModelTest {
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.isEnabled)
+    }
+
+    @Test
+    fun `shows onboarding privacy sheet when consent decision is missing`() = runTest {
+        val viewModel = createViewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(PrivacySheetMode.ONBOARDING, viewModel.uiState.value.privacySheetMode)
+        assertFalse(viewModel.uiState.value.decisionRecorded)
+    }
+
+    @Test
+    fun `does not show onboarding when consent decision already recorded`() = runTest {
+        val privacyRepo = InMemoryPrivacyConsentRepository(
+            PrivacyConsent(
+                analyticsEnabled = true,
+                crashlyticsEnabled = false,
+                decisionRecorded = true,
+            ),
+        )
+        val viewModel = createViewModel(privacyConsentRepository = privacyRepo)
+
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.privacySheetMode)
+        assertTrue(viewModel.uiState.value.decisionRecorded)
+        assertTrue(viewModel.uiState.value.analyticsEnabled)
+        assertFalse(viewModel.uiState.value.crashlyticsEnabled)
+    }
+
+    @Test
+    fun `allow both persists consent enables both and closes onboarding`() = runTest {
+        val privacyRepo = InMemoryPrivacyConsentRepository()
+        val analyticsCollection = FakeAnalyticsCollectionController()
+        val crashlyticsCollection = FakeCrashlyticsCollectionController()
+        val viewModel = createViewModel(
+            privacyConsentRepository = privacyRepo,
+            firebaseConsentApplier = FirebaseConsentApplier(analyticsCollection, crashlyticsCollection),
+        )
+
+        advanceUntilIdle()
+        viewModel.onAllowBothPrivacy()
+        advanceUntilIdle()
+
+        assertTrue(privacyRepo.current.decisionRecorded)
+        assertTrue(privacyRepo.current.analyticsEnabled)
+        assertTrue(privacyRepo.current.crashlyticsEnabled)
+        assertNull(viewModel.uiState.value.privacySheetMode)
+        assertEquals(true, analyticsCollection.enabledHistory.last())
+        assertEquals(true, crashlyticsCollection.enabledHistory.last())
+    }
+
+    @Test
+    fun `decline both persists disabled consent and closes onboarding`() = runTest {
+        val privacyRepo = InMemoryPrivacyConsentRepository()
+        val viewModel = createViewModel(privacyConsentRepository = privacyRepo)
+
+        advanceUntilIdle()
+        viewModel.onDeclineBothPrivacy()
+        advanceUntilIdle()
+
+        assertTrue(privacyRepo.current.decisionRecorded)
+        assertFalse(privacyRepo.current.analyticsEnabled)
+        assertFalse(privacyRepo.current.crashlyticsEnabled)
+        assertNull(viewModel.uiState.value.privacySheetMode)
+    }
+
+    @Test
+    fun `dismiss without decision keeps collection off and hides sheet for session`() = runTest {
+        val privacyRepo = InMemoryPrivacyConsentRepository()
+        val analyticsCollection = FakeAnalyticsCollectionController()
+        val crashlyticsCollection = FakeCrashlyticsCollectionController()
+        val viewModel = createViewModel(
+            privacyConsentRepository = privacyRepo,
+            firebaseConsentApplier = FirebaseConsentApplier(analyticsCollection, crashlyticsCollection),
+        )
+
+        advanceUntilIdle()
+        viewModel.onPrivacySheetDismiss()
+        advanceUntilIdle()
+
+        assertFalse(privacyRepo.current.decisionRecorded)
+        assertNull(viewModel.uiState.value.privacySheetMode)
+        assertFalse(privacyRepo.current.analyticsEnabled)
+        assertFalse(privacyRepo.current.crashlyticsEnabled)
+        assertEquals(false, analyticsCollection.enabledHistory.last())
+        assertEquals(false, crashlyticsCollection.enabledHistory.last())
+    }
+
+    @Test
+    fun `settings toggles persist immediately and keep settings sheet open`() = runTest {
+        val privacyRepo = InMemoryPrivacyConsentRepository(
+            PrivacyConsent(decisionRecorded = true),
+        )
+        val viewModel = createViewModel(privacyConsentRepository = privacyRepo)
+
+        advanceUntilIdle()
+        viewModel.onPrivacyDiagnosticsClick()
+        advanceUntilIdle()
+        viewModel.onAnalyticsConsentChange(true)
+        advanceUntilIdle()
+
+        assertEquals(PrivacySheetMode.SETTINGS, viewModel.uiState.value.privacySheetMode)
+        assertTrue(privacyRepo.current.analyticsEnabled)
+        assertTrue(viewModel.uiState.value.analyticsEnabled)
     }
 
     @Test

@@ -4,10 +4,13 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.batteryalarm.privacy.PrivacyPolicyLinks
+import com.example.batteryalarm.ui.privacy.PrivacyBottomSheetTestTags
+import com.example.batteryalarm.ui.privacy.PrivacySheetMode
 import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -21,7 +24,7 @@ class PrivacyPolicyLinkTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun privacy_policy_link_is_shown_on_main_screen() {
+    fun privacy_diagnostics_entry_is_shown_on_main_screen() {
         composeRule.setContent {
             BatteryAlarmTheme {
                 MainScreen(
@@ -33,17 +36,22 @@ class PrivacyPolicyLinkTest {
             }
         }
 
-        composeRule.onNodeWithText("Privacy Policy").assertIsDisplayed()
+        composeRule.onNodeWithText("Privacy & Diagnostics").assertIsDisplayed()
         composeRule.onNodeWithText("Test alarm").assertIsDisplayed()
     }
 
     @Test
-    fun privacy_policy_click_invokes_callback_with_public_url() {
+    fun settings_privacy_sheet_shows_privacy_policy_link() {
         var openedUrl: String? = null
         composeRule.setContent {
             BatteryAlarmTheme {
                 MainScreen(
-                    uiState = MainUiState.from(alarmEnabled = true, isTestAlarmPending = false),
+                    uiState = MainUiState.from(
+                        alarmEnabled = true,
+                        isTestAlarmPending = false,
+                        decisionRecorded = true,
+                        privacySheetMode = PrivacySheetMode.SETTINGS,
+                    ),
                     snackbarHostState = remember { SnackbarHostState() },
                     onAlarmToggleClick = {},
                     onTestAlarmClick = {},
@@ -52,7 +60,8 @@ class PrivacyPolicyLinkTest {
             }
         }
 
-        composeRule.onNodeWithText("Privacy Policy").performClick()
+        composeRule.onNodeWithTag(PrivacyBottomSheetTestTags.PRIVACY_POLICY_LINK).assertIsDisplayed()
+        composeRule.onNodeWithTag(PrivacyBottomSheetTestTags.PRIVACY_POLICY_LINK).performClick()
         assertEquals(PrivacyPolicyLinks.PUBLIC_URL, openedUrl)
         assertTrue(openedUrl!!.startsWith("https://"))
     }

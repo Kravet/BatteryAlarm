@@ -81,21 +81,30 @@ class MainActivity : ComponentActivity() {
                     uiState = uiState,
                     snackbarHostState = snackbarHostState,
                     onAlarmToggleClick = {
-                        if (
-                            !uiState.isEnabled &&
-                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                            ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.POST_NOTIFICATIONS,
-                            ) != PackageManager.PERMISSION_GRANTED
-                        ) {
-                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        } else {
-                            viewModel.onAlarmToggleClick()
+                        if (!uiState.isPrivacySheetVisible) {
+                            if (
+                                !uiState.isEnabled &&
+                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.POST_NOTIFICATIONS,
+                                ) != PackageManager.PERMISSION_GRANTED
+                            ) {
+                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                viewModel.onAlarmToggleClick()
+                            }
                         }
                     },
                     onTestAlarmClick = viewModel::onTestAlarmClick,
                     onUpdateClick = viewModel::onUpdateClick,
+                    onPrivacyDiagnosticsClick = viewModel::onPrivacyDiagnosticsClick,
+                    onPrivacySheetDismiss = viewModel::onPrivacySheetDismiss,
+                    onAllowBothPrivacy = viewModel::onAllowBothPrivacy,
+                    onDeclineBothPrivacy = viewModel::onDeclineBothPrivacy,
+                    onSaveCustomPrivacyChoices = viewModel::onSaveCustomPrivacyChoices,
+                    onAnalyticsConsentChange = viewModel::onAnalyticsConsentChange,
+                    onCrashlyticsConsentChange = viewModel::onCrashlyticsConsentChange,
                 )
             }
         }
