@@ -16,6 +16,7 @@ class InMemoryPrivacyConsentRepositoryTest {
         assertFalse(repository.current.analyticsEnabled)
         assertFalse(repository.current.crashlyticsEnabled)
         assertFalse(repository.current.decisionRecorded)
+        assertTrue(repository.current.needsDecision)
     }
 
     @Test

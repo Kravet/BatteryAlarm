@@ -161,6 +161,7 @@ class MainViewModelTest {
                 analyticsEnabled = true,
                 crashlyticsEnabled = false,
                 decisionRecorded = true,
+                consentTextVersion = PrivacyConsent.CONSENT_TEXT_VERSION,
             ),
         )
         val viewModel = createViewModel(privacyConsentRepository = privacyRepo)
@@ -171,6 +172,31 @@ class MainViewModelTest {
         assertTrue(viewModel.uiState.value.decisionRecorded)
         assertTrue(viewModel.uiState.value.analyticsEnabled)
         assertFalse(viewModel.uiState.value.crashlyticsEnabled)
+    }
+
+    @Test
+    fun `stale consent text version shows onboarding and keeps collection off`() = runTest {
+        val privacyRepo = InMemoryPrivacyConsentRepository(
+            PrivacyConsent(
+                analyticsEnabled = true,
+                crashlyticsEnabled = true,
+                decisionRecorded = true,
+                consentTextVersion = "1",
+            ),
+        )
+        val analyticsCollection = FakeAnalyticsCollectionController()
+        val crashlyticsCollection = FakeCrashlyticsCollectionController()
+        val viewModel = createViewModel(
+            privacyConsentRepository = privacyRepo,
+            firebaseConsentApplier = FirebaseConsentApplier(analyticsCollection, crashlyticsCollection),
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(PrivacySheetMode.ONBOARDING, viewModel.uiState.value.privacySheetMode)
+        assertFalse(viewModel.uiState.value.decisionRecorded)
+        assertEquals(false, analyticsCollection.enabledHistory.last())
+        assertEquals(false, crashlyticsCollection.enabledHistory.last())
     }
 
     @Test
@@ -235,7 +261,10 @@ class MainViewModelTest {
     @Test
     fun `settings toggles persist immediately and keep settings sheet open`() = runTest {
         val privacyRepo = InMemoryPrivacyConsentRepository(
-            PrivacyConsent(decisionRecorded = true),
+            PrivacyConsent(
+                decisionRecorded = true,
+                consentTextVersion = PrivacyConsent.CONSENT_TEXT_VERSION,
+            ),
         )
         val viewModel = createViewModel(privacyConsentRepository = privacyRepo)
 

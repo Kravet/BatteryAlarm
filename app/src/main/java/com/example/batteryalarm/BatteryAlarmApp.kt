@@ -39,8 +39,8 @@ class BatteryAlarmApp : Application() {
                 }
                 .collect { consent ->
                     firebaseConsentApplier.apply(
-                        analyticsEnabled = consent.analyticsEnabled,
-                        crashlyticsEnabled = consent.crashlyticsEnabled,
+                        analyticsEnabled = consent.effectiveAnalyticsEnabled,
+                        crashlyticsEnabled = consent.effectiveCrashlyticsEnabled,
                     )
                 }
         }

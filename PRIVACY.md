@@ -34,6 +34,7 @@ This policy covers the Battery Alarm Android app distributed as a signed APK via
 - The App can use **Firebase Analytics** and **Firebase Crashlytics** (Google) only after you **opt in**. Collection is **disabled by default**.
 - Analytics and Crashlytics are independent choices (you can allow one, both, or neither).
 - On first use, the App shows an in-app privacy BottomSheet so you can Allow Both, Decline Both, or customize.
+- If the in-app consent text changes, the App asks again. Until you record a new decision, Analytics and Crashlytics stay off.
 - You can change or withdraw consent later under **Privacy & Diagnostics** in the App.
 - The App may contact **GitHub’s public API** to check for updates.
 
@@ -78,6 +79,9 @@ In the current code:
 - No Firebase Analytics **user ID** is set.
 - Custom event parameters use only the values above (booleans, short enum-like strings, local hour, duration, version name).
 - Advertising ID (AAID) collection is **disabled** in the App manifest (`google_analytics_adid_collection_enabled` = `false`).
+- Google signals are **off** in the linked Google Analytics property.
+- Ads personalization is **disabled** for all regions in that property.
+- Granular city-level location and device-detail collection is **off**. Region- and country-level metadata may still be collected by Google Analytics as described by Google.
 
 In addition to custom events, Firebase Analytics typically collects **automatic** data described by Google (for example app instance identifiers, app version, device/OS information, and approximate location derived from IP). See Google’s documentation: [Firebase / Google Analytics data collection](https://firebase.google.com/support/privacy) and [Configure Analytics data collection](https://firebase.google.com/docs/analytics/configure-data-collection).
 
@@ -122,7 +126,7 @@ Firebase Analytics and Firebase Crashlytics are used only when you give **affirm
 
 Google (Firebase / Google Analytics / Crashlytics) acts as a processor/service provider for analytics and crash reporting. Data may be processed on servers outside your country, including outside the EU/EEA.
 
-Google publishes data processing terms and international transfer safeguards, including Standard Contractual Clauses and, where applicable, the EU–US Data Privacy Framework. We have not yet verified which specific mechanisms apply to all data processed through this App.
+Google publishes data processing terms and international transfer safeguards, including Standard Contractual Clauses and, where applicable, the EU–US Data Privacy Framework. On 16 October 2026 the App developer accepted Google Analytics’ **User Data Collection Acknowledgement** for this property. We rely on Google’s published Firebase / Analytics contractual terms rather than a separately negotiated contract. We have not independently audited which transfer mechanism applies to every Google subprocess.
 
 GitHub, Inc. processes update-check requests as an independent controller or service provider when you or the App contact GitHub.
 
@@ -133,7 +137,7 @@ GitHub, Inc. processes update-check requests as an independent controller or ser
 | Data | Retention |
 | --- | --- |
 | Local App preferences | Until you clear App data, uninstall the App, or Android backup/restore replaces them |
-| Firebase Analytics | Determined by the Google Analytics property settings, which have not yet been verified. Google documents configurable retention periods of 2 or 14 months for standard properties, depending on the data category. These settings do not determine the retention of standard aggregated reports. |
+| Firebase Analytics | The linked GA4 property (`battery-alarm-a0461`) is set to **2 months** for event data and **2 months** for user-level data. “Reset on new user activity” is **off**, so the user-data timer does not restart on each use. Google may keep aggregated reports longer. Property changes can take up to about 24 hours to apply. |
 | Firebase Crashlytics | Google documents approximately 90 days for typical crash data, after which Google begins a deletion process |
 | GitHub API logs | Controlled by GitHub, not by the App |
 
@@ -166,10 +170,12 @@ Implementation facts:
 1. Firebase Analytics and Crashlytics collection are **disabled by default** in the App manifest until you opt in.
 2. On first launch (until you record a decision), the App shows a privacy BottomSheet: Allow Both, Decline Both, or Customize choices.
 3. Dismissing the sheet without a decision does **not** grant consent; collection remains off.
-4. You can open **Privacy & Diagnostics** anytime to turn Usage Analytics and Crash Reports on or off independently. Changes apply immediately.
-5. Consent choices are stored on device and restored after app restart.
-6. Advertising ID collection remains disabled in the manifest.
-7. Withdrawing Crashlytics consent disables further crash collection and asks the SDK to delete unsent local reports. Already transmitted data may remain subject to Google’s retention.
+4. If the in-app consent text version changes, the App shows the BottomSheet again. Previous Analytics/Crashlytics opt-in does not stay active until you record a new decision.
+5. You can open **Privacy & Diagnostics** anytime to turn Usage Analytics and Crash Reports on or off independently. Changes apply immediately.
+6. Consent choices are stored on device and restored after app restart, unless the consent text version has changed (see point 4).
+7. Advertising ID collection remains disabled in the manifest. Google signals and ads personalization are off in the Analytics property. Granular city-level location collection is off.
+8. The App does **not** implement Google Analytics Consent Mode. Collection is gated by in-app opt-in and Firebase SDK collection-enabled flags instead.
+9. Withdrawing Crashlytics consent disables further crash collection and asks the SDK to delete unsent local reports. Already transmitted data may remain subject to Google’s retention.
 
 Core alarm monitoring and alerts continue to work if you decline or withdraw consent.
 
@@ -183,7 +189,7 @@ Other practical steps:
 
 ## 12. Children
 
-Battery Alarm is intended for general users and is not specifically directed at children.
+Battery Alarm is intended for general users and is **not directed at children under 16**. We do not knowingly collect personal data from children. If you believe a child has provided personal data through the App, contact kravetapp@gmail.com.
 
 ---
 

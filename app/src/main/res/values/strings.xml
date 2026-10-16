@@ -31,12 +31,12 @@
     <string name="privacy_diagnostics">Privacy &amp; Diagnostics</string>
     <string name="privacy_onboarding_title">Help Improve Battery Alarm</string>
     <string name="privacy_analytics_title">Usage Analytics</string>
-    <string name="privacy_analytics_body">Helps us understand how features are used.</string>
-    <string name="privacy_analytics_settings_body">Helps improve the app.</string>
+    <string name="privacy_analytics_body">Optional. Helps us understand how features are used. The alarm works without it.</string>
+    <string name="privacy_analytics_settings_body">Helps improve the app. Turn off anytime.</string>
     <string name="privacy_crashlytics_title">Crash Reports</string>
-    <string name="privacy_crashlytics_body">Helps us identify and fix application crashes.</string>
-    <string name="privacy_crashlytics_settings_body">Helps diagnose crashes</string>
-    <string name="privacy_disclaimer">Technical data is processed by Google.</string>
+    <string name="privacy_crashlytics_body">Optional. Helps us find and fix crashes. The alarm works without it.</string>
+    <string name="privacy_crashlytics_settings_body">Helps diagnose crashes. Turn off anytime.</string>
+    <string name="privacy_disclaimer">Google may process technical identifiers, including outside your country. You can change this later.</string>
     <string name="privacy_allow_both">Allow Both</string>
     <string name="privacy_decline_both">Decline Both</string>
     <string name="privacy_customize_choices">Customize choices</string>

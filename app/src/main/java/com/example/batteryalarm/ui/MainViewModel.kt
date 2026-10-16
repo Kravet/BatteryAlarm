@@ -81,19 +81,20 @@ class MainViewModel @Inject constructor(
                 }
                 .collect { consent ->
                     firebaseConsentApplier.apply(
-                        analyticsEnabled = consent.analyticsEnabled,
-                        crashlyticsEnabled = consent.crashlyticsEnabled,
+                        analyticsEnabled = consent.effectiveAnalyticsEnabled,
+                        crashlyticsEnabled = consent.effectiveCrashlyticsEnabled,
                     )
                     _uiState.update { currentState ->
-                        val shouldShowOnboarding = !consent.decisionRecorded &&
+                        val hasCurrentDecision = !consent.needsDecision
+                        val shouldShowOnboarding = consent.needsDecision &&
                             !onboardingDismissedThisSession &&
                             currentState.privacySheetMode != PrivacySheetMode.SETTINGS
                         currentState.copy(
                             analyticsEnabled = consent.analyticsEnabled,
                             crashlyticsEnabled = consent.crashlyticsEnabled,
-                            decisionRecorded = consent.decisionRecorded,
+                            decisionRecorded = hasCurrentDecision,
                             privacySheetMode = when {
-                                consent.decisionRecorded &&
+                                hasCurrentDecision &&
                                     currentState.privacySheetMode == PrivacySheetMode.ONBOARDING -> null
                                 shouldShowOnboarding -> PrivacySheetMode.ONBOARDING
                                 else -> currentState.privacySheetMode

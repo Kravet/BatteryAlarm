@@ -31,12 +31,12 @@
     <string name="privacy_diagnostics">Конфіденційність і діагностика</string>
     <string name="privacy_onboarding_title">Допоможіть покращити Battery Alarm</string>
     <string name="privacy_analytics_title">Аналітика використання</string>
-    <string name="privacy_analytics_body">Допомагає зрозуміти, як використовуються функції.</string>
-    <string name="privacy_analytics_settings_body">Допомагає покращувати застосунок.</string>
+    <string name="privacy_analytics_body">Необов\'язково. Допомагає зрозуміти, як використовуються функції. Сигнал працює і без цього.</string>
+    <string name="privacy_analytics_settings_body">Допомагає покращувати застосунок. Можна вимкнути будь-коли.</string>
     <string name="privacy_crashlytics_title">Звіти про збої</string>
-    <string name="privacy_crashlytics_body">Допомагає виявляти та виправляти збої застосунку.</string>
-    <string name="privacy_crashlytics_settings_body">Допомагає діагностувати збої</string>
-    <string name="privacy_disclaimer">Технічні дані обробляє Google.</string>
+    <string name="privacy_crashlytics_body">Необов\'язково. Допомагає знаходити й виправляти збої. Сигнал працює і без цього.</string>
+    <string name="privacy_crashlytics_settings_body">Допомагає діагностувати збої. Можна вимкнути будь-коли.</string>
+    <string name="privacy_disclaimer">Google може обробляти технічні ідентифікатори, зокрема за межами вашої країни. Це можна змінити пізніше.</string>
     <string name="privacy_allow_both">Дозволити обидва</string>
     <string name="privacy_decline_both">Відхилити обидва</string>
     <string name="privacy_customize_choices">Налаштувати вибір</string>
