@@ -102,8 +102,55 @@ fun MainSettingsContent(
     onPrivacyDiagnosticsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    val isEnabled = uiState.isEnabled
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+        MainSettingsHeroContent(
+            uiState = uiState,
+            onAlarmToggleClick = onAlarmToggleClick,
+        )
+        MainSettingsSecondaryContent(
+            uiState = uiState,
+            onTestAlarmClick = onTestAlarmClick,
+            onUpdateClick = onUpdateClick,
+            onPrivacyDiagnosticsClick = onPrivacyDiagnosticsClick,
+        )
+    }
+}
+
+/** Title + protection card — the optical anchor of the main screen. */
+@Composable
+fun MainSettingsHeroContent(
+    uiState: MainUiState,
+    onAlarmToggleClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val toggleContentDescription = stringResource(uiState.toggleContentDescriptionRes)
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+        HeaderSection()
+        ProtectionToggleCard(
+            isEnabled = uiState.isEnabled,
+            contentDescription = toggleContentDescription,
+            onClick = onAlarmToggleClick,
+        )
+    }
+}
+
+/** Actions below the hero: update CTA, test alarm, privacy entry. */
+@Composable
+fun MainSettingsSecondaryContent(
+    uiState: MainUiState,
+    onTestAlarmClick: () -> Unit,
+    onUpdateClick: () -> Unit = {},
+    onPrivacyDiagnosticsClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     val testAlarmButtonText = uiState.testAlarmSecondsRemaining?.let { secondsRemaining ->
         stringResource(R.string.test_alarm_countdown, secondsRemaining)
     } ?: stringResource(R.string.test_the_sound)
@@ -113,14 +160,6 @@ fun MainSettingsContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        HeaderSection()
-
-        ProtectionToggleCard(
-            isEnabled = isEnabled,
-            contentDescription = toggleContentDescription,
-            onClick = onAlarmToggleClick,
-        )
-
         uiState.pendingUpdate?.let { pendingUpdate ->
             UpdateAvailableButton(
                 update = pendingUpdate,
