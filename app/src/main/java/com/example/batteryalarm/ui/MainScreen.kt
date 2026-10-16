@@ -1,12 +1,10 @@
 package com.example.batteryalarm.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -33,10 +31,10 @@ import com.example.batteryalarm.ui.privacy.PrivacyBottomSheet
 import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
 
 /**
- * Nudge the anchored block from the geometric center of the full screen.
+ * Nudge where the hero bottom sits relative to the screen midline.
  * Negative = higher, positive = lower. Use dp, not percent.
  */
-private val HeroCenterOffsetY = 0.dp
+private val HeroBottomOffsetY = 0.dp
 
 private val MainScreenHorizontalPadding = 24.dp
 private val HeroToSecondarySpacing = 24.dp
@@ -80,45 +78,38 @@ fun MainScreen(
         ) {
             val density = LocalDensity.current
             val screenHeightPx = with(density) { maxHeight.toPx() }
-            val offsetPx = with(density) { HeroCenterOffsetY.toPx() }
+            val offsetPx = with(density) { HeroBottomOffsetY.toPx() }
             val scrollState = rememberScrollState()
-            var contentHeightPx by remember { mutableIntStateOf(0) }
+            var heroHeightPx by remember { mutableIntStateOf(0) }
 
-            // verticalScroll forces max-height viewport, so Alignment.Center cannot work.
-            // Equal spacers center the measured content against the real screen height.
-            val extraSpacePx = (screenHeightPx - contentHeightPx).coerceAtLeast(0f)
-            val topSpacerPx = (extraSpacePx / 2f + offsetPx).coerceAtLeast(0f)
-            val bottomSpacerPx = (extraSpacePx / 2f - offsetPx).coerceAtLeast(0f)
+            // Pin the bottom of the hero (title + card) to the vertical midline.
+            // Secondary actions hang below that anchor.
+            val topSpacerPx = (screenHeightPx / 2f - heroHeightPx + offsetPx).coerceAtLeast(0f)
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
+                    .padding(horizontal = MainScreenHorizontalPadding)
                     .testTag(MainScreenTestTags.SCROLL_CONTAINER),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Spacer(modifier = Modifier.height(with(density) { topSpacerPx.toDp() }))
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = MainScreenHorizontalPadding)
-                        .onSizeChanged { contentHeightPx = it.height },
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(HeroToSecondarySpacing),
-                ) {
-                    MainSettingsHeroContent(
-                        uiState = uiState,
-                        onAlarmToggleClick = onAlarmToggleClick,
-                    )
-                    MainSettingsSecondaryContent(
-                        uiState = uiState,
-                        onTestAlarmClick = onTestAlarmClick,
-                        onUpdateClick = onUpdateClick,
-                        onPrivacyDiagnosticsClick = onPrivacyDiagnosticsClick,
-                    )
-                }
+                MainSettingsHeroContent(
+                    uiState = uiState,
+                    onAlarmToggleClick = onAlarmToggleClick,
+                    modifier = Modifier.onSizeChanged { heroHeightPx = it.height },
+                )
 
-                Spacer(modifier = Modifier.height(with(density) { bottomSpacerPx.toDp() }))
+                Spacer(modifier = Modifier.height(HeroToSecondarySpacing))
+
+                MainSettingsSecondaryContent(
+                    uiState = uiState,
+                    onTestAlarmClick = onTestAlarmClick,
+                    onUpdateClick = onUpdateClick,
+                    onPrivacyDiagnosticsClick = onPrivacyDiagnosticsClick,
+                )
             }
         }
     }
