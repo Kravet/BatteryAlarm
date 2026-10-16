@@ -1,13 +1,13 @@
 package com.example.batteryalarm.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -32,10 +32,13 @@ import com.example.batteryalarm.privacy.PrivacyPolicyLinks
 import com.example.batteryalarm.ui.privacy.PrivacyBottomSheet
 import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
 
-/** Fraction of viewport height to shift the hero anchor above geometric center. */
-private const val MainContentUpwardOffsetFraction = 0.10f
+/**
+ * Nudge the anchored block from the geometric center of the full screen.
+ * Negative = higher, positive = lower. Use dp, not percent.
+ */
+private val HeroCenterOffsetY = 0.dp
 
-private val MainScreenContentPadding = 24.dp
+private val MainScreenHorizontalPadding = 24.dp
 private val HeroToSecondarySpacing = 24.dp
 
 object MainScreenTestTags {
@@ -76,43 +79,37 @@ fun MainScreen(
                 .background(Color.White),
         ) {
             val density = LocalDensity.current
-            val viewportHeight = maxHeight
-            val contentViewportHeight = (viewportHeight - MainScreenContentPadding * 2)
-                .coerceAtLeast(0.dp)
+            val screenHeightPx = with(density) { maxHeight.toPx() }
+            val offsetPx = with(density) { HeroCenterOffsetY.toPx() }
             val scrollState = rememberScrollState()
-            var heroHeightPx by remember { mutableIntStateOf(0) }
+            var contentHeightPx by remember { mutableIntStateOf(0) }
 
-            val topSpacer = with(density) {
-                val contentViewportPx = contentViewportHeight.toPx()
-                val targetHeroCenterY =
-                    contentViewportPx * (0.5f - MainContentUpwardOffsetFraction)
-                val topSpacerPx = (targetHeroCenterY - heroHeightPx / 2f).coerceAtLeast(0f)
-                topSpacerPx.toDp()
-            }
+            // verticalScroll forces max-height viewport, so Alignment.Center cannot work.
+            // Equal spacers center the measured content against the real screen height.
+            val extraSpacePx = (screenHeightPx - contentHeightPx).coerceAtLeast(0f)
+            val topSpacerPx = (extraSpacePx / 2f + offsetPx).coerceAtLeast(0f)
+            val bottomSpacerPx = (extraSpacePx / 2f - offsetPx).coerceAtLeast(0f)
 
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .verticalScroll(scrollState)
                     .testTag(MainScreenTestTags.SCROLL_CONTAINER),
             ) {
+                Spacer(modifier = Modifier.height(with(density) { topSpacerPx.toDp() }))
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = viewportHeight)
-                        .padding(MainScreenContentPadding),
+                        .padding(horizontal = MainScreenHorizontalPadding)
+                        .onSizeChanged { contentHeightPx = it.height },
                     horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(HeroToSecondarySpacing),
                 ) {
-                    Spacer(modifier = Modifier.height(topSpacer))
-
                     MainSettingsHeroContent(
-                        modifier = Modifier.onSizeChanged { heroHeightPx = it.height },
                         uiState = uiState,
                         onAlarmToggleClick = onAlarmToggleClick,
                     )
-
-                    Spacer(modifier = Modifier.height(HeroToSecondarySpacing))
-
                     MainSettingsSecondaryContent(
                         uiState = uiState,
                         onTestAlarmClick = onTestAlarmClick,
@@ -120,6 +117,8 @@ fun MainScreen(
                         onPrivacyDiagnosticsClick = onPrivacyDiagnosticsClick,
                     )
                 }
+
+                Spacer(modifier = Modifier.height(with(density) { bottomSpacerPx.toDp() }))
             }
         }
     }
