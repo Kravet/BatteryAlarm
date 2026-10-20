@@ -24,10 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.batteryalarm.R
 import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
-import com.example.batteryalarm.ui.theme.BrandGreen
-import com.example.batteryalarm.ui.theme.BrandGreenLight
-import com.example.batteryalarm.ui.theme.TextDark
-import com.example.batteryalarm.ui.theme.TextMuted
+import com.example.batteryalarm.ui.theme.BatteryAlarmThemeTokens
 
 @Composable
 fun UpdateAvailableButton(
@@ -35,6 +32,7 @@ fun UpdateAvailableButton(
     onUpdateClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val brandColors = BatteryAlarmThemeTokens.colors
     val shape = RoundedCornerShape(16.dp)
     val title = stringResource(R.string.update_available_title, update.versionName)
     val body = stringResource(R.string.update_available_body)
@@ -47,8 +45,8 @@ fun UpdateAvailableButton(
                 role = Role.Button
             }
             .clip(shape)
-            .background(color = BrandGreenLight, shape = shape)
-            .border(width = 1.dp, color = BrandGreen.copy(alpha = 0.25f), shape = shape)
+            .background(color = brandColors.brandGreenContainer, shape = shape)
+            .border(width = 1.dp, color = brandColors.brandGreen.copy(alpha = 0.25f), shape = shape)
             .clickable(onClick = onUpdateClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -62,27 +60,47 @@ fun UpdateAvailableButton(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = TextDark,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = body,
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Text(
             text = action,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = BrandGreen,
+            color = brandColors.brandGreen,
         )
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, name = "Update light")
 @Composable
 private fun UpdateAvailableButtonPreview() {
-    BatteryAlarmTheme {
+    BatteryAlarmTheme(dynamicColor = false) {
+        UpdateAvailableButton(
+            update = AppUpdateUiModel(
+                versionName = "1.1.0",
+                releaseNotes = null,
+                releasePageUrl = "https://github.com/example/repo/releases/tag/v1.1.0",
+            ),
+            onUpdateClick = {},
+            modifier = Modifier.padding(16.dp),
+        )
+    }
+}
+
+@Preview(
+    showBackground = true,
+    name = "Update dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun UpdateAvailableButtonDarkPreview() {
+    BatteryAlarmTheme(darkTheme = true, dynamicColor = false) {
         UpdateAvailableButton(
             update = AppUpdateUiModel(
                 versionName = "1.1.0",

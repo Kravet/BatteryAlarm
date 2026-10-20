@@ -61,16 +61,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import com.example.batteryalarm.R
 import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
-import com.example.batteryalarm.ui.theme.BrandGreen
-import com.example.batteryalarm.ui.theme.BrandGreenLight
-import com.example.batteryalarm.ui.theme.ProtectionOffAccent
-import com.example.batteryalarm.ui.theme.ProtectionOffBackground
-import com.example.batteryalarm.ui.theme.ProtectionOffBorder
-import com.example.batteryalarm.ui.theme.ProtectionOffDropShadow
-import com.example.batteryalarm.ui.theme.ProtectionOffIconBackground
-import com.example.batteryalarm.ui.theme.StatusCardDropShadow
-import com.example.batteryalarm.ui.theme.TextDark
-import com.example.batteryalarm.ui.theme.TextMuted
+import com.example.batteryalarm.ui.theme.BatteryAlarmThemeTokens
 
 private const val CardTransitionDurationMillis = 400
 private const val ContentFadeDurationMillis = 300
@@ -91,7 +82,6 @@ private val HeaderTitleSubtitleSpacing = 5.dp
 
 private val StatusCardColorAnimationSpec =
     tween<Color>(durationMillis = CardTransitionDurationMillis, easing = FastOutSlowInEasing)
-private val StatusCardBorderEnabled = Color(0xFFE0E0E0)
 
 @Composable
 fun MainSettingsContent(
@@ -176,7 +166,7 @@ fun MainSettingsSecondaryContent(
         TextButton(onClick = onPrivacyDiagnosticsClick) {
             Text(
                 text = stringResource(R.string.privacy_diagnostics),
-                color = TextMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = MainSubtitleFontSizeSp.sp,
                 lineHeight = MainSubtitleLineHeightSp.sp,
                 fontWeight = FontWeight.Medium,
@@ -204,13 +194,15 @@ private fun TestAlarmButtonSection(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        val brandColors = BatteryAlarmThemeTokens.colors
+        val muted = MaterialTheme.colorScheme.onSurfaceVariant
         TextButton(
             onClick = onClick,
             enabled = !uiState.isTestAlarmPending,
         ) {
             Text(
                 text = buttonText,
-                color = if (uiState.isTestAlarmPending) TextMuted else BrandGreen,
+                color = if (uiState.isTestAlarmPending) muted else brandColors.brandGreen,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
             )
@@ -219,7 +211,7 @@ private fun TestAlarmButtonSection(
         Text(
             modifier = hintModifier,
             text = stringResource(R.string.test_alarm_lock_screen_hint),
-            color = if (uiState.isTestAlarmPending) TextMuted else Color.Transparent,
+            color = if (uiState.isTestAlarmPending) muted else Color.Transparent,
             fontSize = 13.sp,
             lineHeight = 18.sp,
             textAlign = TextAlign.Center,
@@ -240,7 +232,7 @@ private fun HeaderSection() {
                 lineHeight = MainTitleLineHeightSp.sp,
             ),
             fontWeight = FontWeight.Bold,
-            color = TextDark,
+            color = MaterialTheme.colorScheme.onBackground,
         )
         Text(
             text = stringResource(R.string.main_subtitle),
@@ -248,7 +240,7 @@ private fun HeaderSection() {
                 fontSize = MainSubtitleFontSizeSp.sp,
                 lineHeight = MainSubtitleLineHeightSp.sp,
             ),
-            color = TextMuted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
     }
@@ -260,19 +252,32 @@ private fun ProtectionToggleCard(
     contentDescription: String,
     onClick: () -> Unit,
 ) {
+    val brandColors = BatteryAlarmThemeTokens.colors
     val cardShape = RoundedCornerShape(16.dp)
     val cardBackground by animateColorAsState(
-        targetValue = if (isEnabled) Color.White else ProtectionOffBackground,
+        targetValue = if (isEnabled) {
+            brandColors.statusCardBackground
+        } else {
+            brandColors.protectionOffBackground
+        },
         animationSpec = StatusCardColorAnimationSpec,
         label = "card_background",
     )
     val cardBorder by animateColorAsState(
-        targetValue = if (isEnabled) StatusCardBorderEnabled else ProtectionOffBorder,
+        targetValue = if (isEnabled) {
+            brandColors.statusCardBorder
+        } else {
+            brandColors.protectionOffBorder
+        },
         animationSpec = StatusCardColorAnimationSpec,
         label = "card_border",
     )
     val shadowColor by animateColorAsState(
-        targetValue = if (isEnabled) StatusCardDropShadow else ProtectionOffDropShadow,
+        targetValue = if (isEnabled) {
+            brandColors.statusCardDropShadow
+        } else {
+            brandColors.protectionOffDropShadow
+        },
         animationSpec = StatusCardColorAnimationSpec,
         label = "card_shadow",
     )
@@ -344,14 +349,14 @@ private fun ProtectionToggleCard(
                         ),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = TextDark,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = stringResource(
                             if (enabled) R.string.alarm_is_active else R.string.protection_off_subtitle,
                         ),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         minLines = 2,
                         maxLines = 2,
                     )
@@ -362,12 +367,12 @@ private fun ProtectionToggleCard(
                 checked = isEnabled,
                 onCheckedChange = { onClick() },
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = BrandGreen,
-                    checkedBorderColor = BrandGreen,
-                    uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = ProtectionOffIconBackground,
-                    uncheckedBorderColor = ProtectionOffBorder,
+                    checkedThumbColor = brandColors.onBrandGreenFill,
+                    checkedTrackColor = brandColors.brandGreenFill,
+                    checkedBorderColor = brandColors.brandGreenFill,
+                    uncheckedThumbColor = brandColors.onFilledAccent,
+                    uncheckedTrackColor = brandColors.protectionOffIconBackground,
+                    uncheckedBorderColor = brandColors.protectionOffBorder,
                 ),
                 modifier = Modifier.clearAndSetSemantics {},
             )
@@ -383,13 +388,22 @@ private fun ProtectionShieldIcon(
     isEnabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val brandColors = BatteryAlarmThemeTokens.colors
     val iconBackground by animateColorAsState(
-        targetValue = if (isEnabled) BrandGreenLight else ProtectionOffIconBackground,
+        targetValue = if (isEnabled) {
+            brandColors.brandGreenContainer
+        } else {
+            brandColors.protectionOffIconBackground
+        },
         animationSpec = StatusCardColorAnimationSpec,
         label = "icon_background",
     )
     val shieldColor by animateColorAsState(
-        targetValue = if (isEnabled) BrandGreen else ProtectionOffAccent,
+        targetValue = if (isEnabled) {
+            brandColors.brandGreenFill
+        } else {
+            brandColors.protectionOffAccent
+        },
         animationSpec = StatusCardColorAnimationSpec,
         label = "shield_color",
     )
@@ -460,7 +474,7 @@ private fun ProtectionShieldIcon(
 
             drawPath(
                 path = morphPath,
-                color = Color.White,
+                color = brandColors.onFilledAccent,
                 style = Stroke(
                     width = strokeWidth,
                     cap = StrokeCap.Round,
@@ -471,10 +485,10 @@ private fun ProtectionShieldIcon(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, name = "Settings disabled light")
 @Composable
 private fun MainSettingsContentDisabledPreview() {
-    BatteryAlarmTheme {
+    BatteryAlarmTheme(dynamicColor = false) {
         MainSettingsContent(
             uiState = MainUiState.from(alarmEnabled = false, isTestAlarmPending = false),
             onAlarmToggleClick = {},
@@ -483,10 +497,26 @@ private fun MainSettingsContentDisabledPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, name = "Settings enabled light")
 @Composable
 private fun MainSettingsContentEnabledPreview() {
-    BatteryAlarmTheme {
+    BatteryAlarmTheme(dynamicColor = false) {
+        MainSettingsContent(
+            uiState = MainUiState.from(alarmEnabled = true, isTestAlarmPending = false),
+            onAlarmToggleClick = {},
+            onTestAlarmClick = {},
+        )
+    }
+}
+
+@Preview(
+    showBackground = true,
+    name = "Settings enabled dark",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun MainSettingsContentEnabledDarkPreview() {
+    BatteryAlarmTheme(darkTheme = true, dynamicColor = false) {
         MainSettingsContent(
             uiState = MainUiState.from(alarmEnabled = true, isTestAlarmPending = false),
             onAlarmToggleClick = {},

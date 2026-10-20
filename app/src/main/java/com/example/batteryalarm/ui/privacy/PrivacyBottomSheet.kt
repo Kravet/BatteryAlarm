@@ -28,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -39,9 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.batteryalarm.R
 import com.example.batteryalarm.privacy.PrivacyPolicyLinks
-import com.example.batteryalarm.ui.theme.BrandGreen
-import com.example.batteryalarm.ui.theme.TextDark
-import com.example.batteryalarm.ui.theme.TextMuted
+import com.example.batteryalarm.ui.theme.BatteryAlarmThemeTokens
 
 object PrivacyBottomSheetTestTags {
     const val SHEET = "privacy_bottom_sheet"
@@ -77,7 +74,7 @@ fun PrivacyBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         modifier = Modifier.testTag(PrivacyBottomSheetTestTags.SHEET),
     ) {
         when (mode) {
@@ -109,6 +106,9 @@ private fun OnboardingPrivacyContent(
     var customizeExpanded by remember { mutableStateOf(false) }
     var customAnalytics by remember { mutableStateOf(false) }
     var customCrashlytics by remember { mutableStateOf(false) }
+    val brandColors = BatteryAlarmThemeTokens.colors
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
         modifier = Modifier
@@ -123,7 +123,7 @@ private fun OnboardingPrivacyContent(
             modifier = Modifier.testTag(PrivacyBottomSheetTestTags.TITLE),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = TextDark,
+            color = onSurface,
         )
 
         if (!customizeExpanded) {
@@ -139,7 +139,7 @@ private fun OnboardingPrivacyContent(
             )
             Text(
                 text = stringResource(R.string.privacy_disclaimer),
-                color = TextMuted,
+                color = onSurfaceVariant,
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
             )
@@ -150,7 +150,10 @@ private fun OnboardingPrivacyContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag(PrivacyBottomSheetTestTags.ALLOW_BOTH),
-                colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = brandColors.brandGreenFill,
+                    contentColor = brandColors.onBrandGreenFill,
+                ),
             ) {
                 Text(text = stringResource(R.string.privacy_allow_both))
             }
@@ -160,7 +163,7 @@ private fun OnboardingPrivacyContent(
                     .fillMaxWidth()
                     .testTag(PrivacyBottomSheetTestTags.DECLINE_BOTH),
             ) {
-                Text(text = stringResource(R.string.privacy_decline_both), color = TextDark)
+                Text(text = stringResource(R.string.privacy_decline_both), color = onSurface)
             }
             TextButton(
                 onClick = { customizeExpanded = true },
@@ -170,14 +173,14 @@ private fun OnboardingPrivacyContent(
             ) {
                 Text(
                     text = stringResource(R.string.privacy_customize_choices),
-                    color = BrandGreen,
+                    color = brandColors.brandGreen,
                     fontWeight = FontWeight.Medium,
                 )
             }
         } else {
             Text(
                 text = stringResource(R.string.privacy_disclaimer),
-                color = TextMuted,
+                color = onSurfaceVariant,
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
             )
@@ -201,7 +204,10 @@ private fun OnboardingPrivacyContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag(PrivacyBottomSheetTestTags.SAVE_CHOICES),
-                colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = brandColors.brandGreenFill,
+                    contentColor = brandColors.onBrandGreenFill,
+                ),
             ) {
                 Text(text = stringResource(R.string.privacy_save_choices))
             }
@@ -230,7 +236,7 @@ private fun SettingsPrivacyContent(
             modifier = Modifier.testTag(PrivacyBottomSheetTestTags.TITLE),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = TextDark,
+            color = MaterialTheme.colorScheme.onSurface,
         )
         ConsentSwitchRow(
             title = stringResource(R.string.privacy_analytics_title),
@@ -261,11 +267,11 @@ private fun FeatureSummary(
             text = "$emoji $title",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            color = TextDark,
+            color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
             text = body,
-            color = TextMuted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 14.sp,
             lineHeight = 20.sp,
         )
@@ -280,6 +286,7 @@ private fun ConsentSwitchRow(
     onCheckedChange: (Boolean) -> Unit,
     switchTestTag: String,
 ) {
+    val brandColors = BatteryAlarmThemeTokens.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -295,11 +302,11 @@ private fun ConsentSwitchRow(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = TextDark,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = body,
-                color = TextMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
             )
@@ -308,9 +315,9 @@ private fun ConsentSwitchRow(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = BrandGreen,
-                checkedBorderColor = BrandGreen,
+                checkedThumbColor = brandColors.onBrandGreenFill,
+                checkedTrackColor = brandColors.brandGreenFill,
+                checkedBorderColor = brandColors.brandGreenFill,
             ),
             modifier = Modifier.testTag(switchTestTag),
         )
@@ -325,7 +332,7 @@ private fun PrivacyPolicyLink(onClick: () -> Unit) {
             .testTag(PrivacyBottomSheetTestTags.PRIVACY_POLICY_LINK)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(vertical = 4.dp),
-        color = BrandGreen,
+        color = BatteryAlarmThemeTokens.colors.brandGreen,
         fontSize = 14.sp,
         fontWeight = FontWeight.Medium,
         textDecoration = TextDecoration.Underline,
