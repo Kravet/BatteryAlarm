@@ -135,6 +135,65 @@ class MainViewModelTest {
     )
 
     @Test
+    fun `composes alarm update and privacy states without overwriting each other`() = runTest {
+        val store = InMemoryUpdateCheckAttemptStore()
+        val consent = InMemoryPrivacyConsentRepository(
+            PrivacyConsent(
+                analyticsEnabled = true,
+                crashlyticsEnabled = false,
+                decisionRecorded = true,
+                consentTextVersion = PrivacyConsent.CONSENT_TEXT_VERSION,
+            ),
+        )
+        val viewModel = createViewModel(
+            alarmSettingsRepository = FakeAlarmSettingsRepository(enabled = true),
+            checkForAppUpdate = availableUpdateChecker(store = store),
+            updateCheckAttemptStore = store,
+            privacyConsentRepository = consent,
+        )
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isEnabled)
+        assertTrue(viewModel.uiState.value.analyticsEnabled)
+        assertFalse(viewModel.uiState.value.crashlyticsEnabled)
+        assertEquals("1.1.0", viewModel.uiState.value.pendingUpdate?.versionName)
+
+        viewModel.onPrivacyDiagnosticsClick()
+        runCurrent()
+        assertEquals(PrivacySheetMode.SETTINGS, viewModel.uiState.value.privacySheetMode)
+        assertTrue(viewModel.uiState.value.isEnabled)
+        assertEquals("1.1.0", viewModel.uiState.value.pendingUpdate?.versionName)
+
+        viewModel.onUpdateClick()
+        advanceUntilIdle()
+        assertNull(viewModel.uiState.value.pendingUpdate)
+        assertTrue(viewModel.uiState.value.isEnabled)
+        assertEquals(PrivacySheetMode.SETTINGS, viewModel.uiState.value.privacySheetMode)
+    }
+
+    @Test
+    fun `test alarm countdown preserves unrelated privacy and update state`() = runTest {
+        val store = InMemoryUpdateCheckAttemptStore()
+        val viewModel = createViewModel(
+            checkForAppUpdate = availableUpdateChecker(store = store),
+            updateCheckAttemptStore = store,
+        )
+        advanceUntilIdle()
+
+        viewModel.onTestAlarmClick()
+        runCurrent()
+        assertTrue(viewModel.uiState.value.isTestAlarmPending)
+        assertEquals("1.1.0", viewModel.uiState.value.pendingUpdate?.versionName)
+        assertEquals(PrivacySheetMode.ONBOARDING, viewModel.uiState.value.privacySheetMode)
+
+        advanceTimeBy(BatteryLowAlarmHandler.TEST_ALARM_TICK_MS)
+        runCurrent()
+        assertEquals(3, viewModel.uiState.value.testAlarmSecondsRemaining)
+        assertEquals("1.1.0", viewModel.uiState.value.pendingUpdate?.versionName)
+        assertEquals(PrivacySheetMode.ONBOARDING, viewModel.uiState.value.privacySheetMode)
+    }
+
+    @Test
     fun `initial state uses stored alarm enabled flag`() = runTest {
         val viewModel = createViewModel(
             alarmSettingsRepository = FakeAlarmSettingsRepository(enabled = true),

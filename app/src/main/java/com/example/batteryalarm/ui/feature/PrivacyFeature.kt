@@ -1,5 +1,6 @@
 package com.example.batteryalarm.ui.feature
 
+import com.example.batteryalarm.domain.privacy.PrivacyConsent
 import com.example.batteryalarm.domain.privacy.PrivacyConsentRepository
 import com.example.batteryalarm.ui.privacy.PrivacySheetMode
 import javax.inject.Inject
@@ -9,8 +10,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** Presentation state holder for onboarding and privacy settings. */
 class PrivacyFeature @Inject constructor(
@@ -20,6 +24,7 @@ class PrivacyFeature @Inject constructor(
     val state: StateFlow<PrivacyFeatureState> = _state.asStateFlow()
 
     private var onboardingDismissedThisSession = false
+    private val consentWrites = Mutex()
 
     fun observe(scope: CoroutineScope) {
         scope.launch {
@@ -67,17 +72,31 @@ class PrivacyFeature @Inject constructor(
         persist(scope, analyticsEnabled, crashlyticsEnabled)
 
     fun changeAnalytics(scope: CoroutineScope, enabled: Boolean) =
-        persist(scope, analyticsEnabled = enabled, crashlyticsEnabled = _state.value.crashlyticsEnabled)
+        updateConsent(scope) { current -> enabled to current.crashlyticsEnabled }
 
     fun changeCrashlytics(scope: CoroutineScope, enabled: Boolean) =
-        persist(scope, analyticsEnabled = _state.value.analyticsEnabled, crashlyticsEnabled = enabled)
+        updateConsent(scope) { current -> current.analyticsEnabled to enabled }
 
-    private fun persist(scope: CoroutineScope, analyticsEnabled: Boolean, crashlyticsEnabled: Boolean) {
+    private fun persist(scope: CoroutineScope, analyticsEnabled: Boolean, crashlyticsEnabled: Boolean) =
+        updateConsent(scope) { analyticsEnabled to crashlyticsEnabled }
+
+    /**
+     * Serialize read-modify-write operations against persisted consent.
+     * Reading the UI snapshot here loses the first choice when two toggles
+     * are tapped before the repository Flow delivers its next emission.
+     */
+    private fun updateConsent(
+        scope: CoroutineScope,
+        choices: (PrivacyConsent) -> Pair<Boolean, Boolean>,
+    ) {
         scope.launch {
-            repository.setConsent(
-                analyticsEnabled = analyticsEnabled,
-                crashlyticsEnabled = crashlyticsEnabled,
-            )
+            consentWrites.withLock {
+                val (analytics, crashlytics) = choices(repository.consent.first())
+                repository.setConsent(
+                    analyticsEnabled = analytics,
+                    crashlyticsEnabled = crashlytics,
+                )
+            }
         }
     }
 }
