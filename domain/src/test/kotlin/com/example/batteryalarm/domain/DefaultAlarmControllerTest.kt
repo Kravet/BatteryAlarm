@@ -1,6 +1,16 @@
 package com.example.batteryalarm.domain
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.test.runTest
@@ -171,6 +181,132 @@ class DefaultAlarmControllerTest {
         assertEquals(0, soundPlayer.stopCount)
         assertEquals(0, vibrator.stopCount)
         assertEquals(0, notifier.clearCount)
+    }
+
+
+    @Test
+    fun `when stop occurs while settings are loading then pending start is superseded`() = runTest {
+        val settingsRead = CompletableDeferred<Unit>()
+        val resumeSettingsRead = CompletableDeferred<Unit>()
+        val settingsRepository = object : AlarmSettingsRepository {
+            override val alarmEnabled: Flow<Boolean> = flowOf(true)
+            override suspend fun isAlarmEnabled(): Boolean {
+                settingsRead.complete(Unit)
+                resumeSettingsRead.await()
+                return true
+            }
+            override suspend fun setAlarmEnabled(enabled: Boolean) = Unit
+            override suspend fun toggleAlarmEnabled() = Unit
+        }
+        val sound = FakeAlarmSoundPlayer()
+        val controller = createController(settingsRepository = settingsRepository, soundPlayer = sound)
+
+        val pendingStart = async { controller.startAlarm(AlarmStartReason.SystemLowBattery) }
+        settingsRead.await()
+        assertEquals(AlarmStopResult.AlreadyIdle, controller.stopAlarm(AlarmStopReason.PowerConnected))
+        resumeSettingsRead.complete(Unit)
+
+        assertEquals(AlarmStartResult.Superseded, pendingStart.await())
+        assertEquals(AlarmState.Idle, controller.state)
+        assertEquals(0, sound.startLoopingCount)
+    }
+
+    @Test
+    fun `when startup output fails then started outputs are cleaned and state stays idle`() = runTest {
+        val sound = FakeAlarmSoundPlayer()
+        val vibrator = FakeAlarmVibrator()
+        var clears = 0
+        val notifier = object : AlarmNotifier {
+            override fun showAlarmStarted(reason: AlarmStartReason) {
+                throw IllegalStateException("notification unavailable")
+            }
+            override fun clearAlarm() {
+                clears++
+            }
+        }
+        val controller = DefaultAlarmController(
+            settingsRepository = FakeAlarmSettingsRepository(enabled = true),
+            soundPlayer = sound,
+            vibrator = vibrator,
+            notifier = notifier,
+        )
+        try {
+            controller.startAlarm(AlarmStartReason.SystemLowBattery)
+            fail("Expected notification failure")
+        } catch (expected: IllegalStateException) {
+            assertEquals("notification unavailable", expected.message)
+        }
+
+        assertEquals(AlarmState.Idle, controller.state)
+        assertEquals(1, sound.stopCount)
+        assertEquals(1, vibrator.stopCount)
+        assertEquals(1, clears)
+    }
+
+    @Test
+    fun `when sound stop fails then remaining outputs are stopped and state is idle`() = runTest {
+        val sound = object : AlarmSoundPlayer {
+            override fun startLooping() = Unit
+            override fun stop() {
+                throw IllegalStateException("sound cleanup failed")
+            }
+        }
+        val vibrator = FakeAlarmVibrator()
+        val notifier = FakeAlarmNotifier()
+        val controller = DefaultAlarmController(
+            settingsRepository = FakeAlarmSettingsRepository(enabled = true),
+            soundPlayer = sound,
+            vibrator = vibrator,
+            notifier = notifier,
+        )
+        controller.startAlarm(AlarmStartReason.SystemLowBattery)
+
+        try {
+            controller.stopAlarm(AlarmStopReason.UserDismissed)
+            fail("Expected sound cleanup failure")
+        } catch (expected: IllegalStateException) {
+            assertEquals("sound cleanup failed", expected.message)
+        }
+        assertEquals(AlarmState.Idle, controller.state)
+        assertEquals(1, vibrator.stopCount)
+        assertEquals(1, notifier.clearCount)
+    }
+
+    @Test
+    fun `concurrent starts do not execute alarm outputs twice`() = runBlocking {
+        val firstOutputStarted = CountDownLatch(1)
+        val releaseOutput = CountDownLatch(1)
+        val soundStarts = AtomicInteger(0)
+        val sound = object : AlarmSoundPlayer {
+            override fun startLooping() {
+                soundStarts.incrementAndGet()
+                firstOutputStarted.countDown()
+                check(releaseOutput.await(5, TimeUnit.SECONDS)) { "Timed out waiting for startup" }
+            }
+            override fun stop() = Unit
+        }
+        val controller = DefaultAlarmController(
+            settingsRepository = FakeAlarmSettingsRepository(enabled = true),
+            soundPlayer = sound,
+            vibrator = FakeAlarmVibrator(),
+            notifier = FakeAlarmNotifier(),
+        )
+        val firstStart = async(Dispatchers.Default) {
+            controller.startAlarm(AlarmStartReason.SystemLowBattery)
+        }
+        try {
+            assertTrue(firstOutputStarted.await(5, TimeUnit.SECONDS))
+            val secondStart = async(Dispatchers.Default) {
+                controller.startAlarm(AlarmStartReason.SystemLowBattery)
+            }
+            releaseOutput.countDown()
+
+            assertTrue(firstStart.await() is AlarmStartResult.Started)
+            assertTrue(secondStart.await() is AlarmStartResult.AlreadyActive)
+            assertEquals(1, soundStarts.get())
+        } finally {
+            releaseOutput.countDown()
+        }
     }
 
     private fun createController(

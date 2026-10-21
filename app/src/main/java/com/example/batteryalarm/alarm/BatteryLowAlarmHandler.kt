@@ -75,6 +75,7 @@ class BatteryLowAlarmHandler @Inject constructor(
             is AlarmStartResult.Started,
             is AlarmStartResult.AlreadyActive,
             AlarmStartResult.Disabled,
+            AlarmStartResult.Superseded,
             -> Unit
         }
     }
