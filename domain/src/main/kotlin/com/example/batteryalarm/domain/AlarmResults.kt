@@ -10,6 +10,9 @@ sealed interface AlarmStartResult {
     ) : AlarmStartResult
 
     data object Disabled : AlarmStartResult
+
+    /** A stop was requested while startAlarm was waiting for its settings check. */
+    data object Superseded : AlarmStartResult
 }
 
 sealed interface AlarmStopResult {

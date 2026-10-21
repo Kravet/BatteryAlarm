@@ -30,6 +30,9 @@ class AnalyticsAlarmController(
             AlarmStartResult.Disabled -> {
                 analytics.logAlarmStartBlocked(RESULT_DISABLED)
             }
+            AlarmStartResult.Superseded -> {
+                analytics.logAlarmStartBlocked(RESULT_SUPERSEDED)
+            }
         }
         return result
     }
@@ -56,5 +59,6 @@ class AnalyticsAlarmController(
     private companion object {
         const val RESULT_ALREADY_ACTIVE = "already_active"
         const val RESULT_DISABLED = "disabled"
+        const val RESULT_SUPERSEDED = "superseded"
     }
 }

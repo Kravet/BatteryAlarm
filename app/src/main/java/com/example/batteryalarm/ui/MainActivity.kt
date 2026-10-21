@@ -43,6 +43,8 @@ class MainActivity : ComponentActivity() {
                 val context = LocalContext.current
                 val coroutineScope = rememberCoroutineScope()
                 val notificationPermissionDeniedMessage = stringResource(R.string.notification_permission_denied)
+                val alarmSettingsSaveFailedMessage = stringResource(R.string.alarm_settings_save_failed)
+                val testAlarmStartFailedMessage = stringResource(R.string.test_alarm_start_failed)
 
                 val notificationPermissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission(),
@@ -59,18 +61,18 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                LaunchedEffect(viewModel) {
+                LaunchedEffect(viewModel, alarmSettingsSaveFailedMessage, testAlarmStartFailedMessage) {
                     viewModel.sideEffects.collect { sideEffect ->
                         when (sideEffect) {
                             MainSideEffect.ShowAlarmSettingsChangeFailed -> {
                                 snackbarHostState.showSnackbar(
-                                    message = "Could not save battery alarm setting. Please try again.",
+                                    message = alarmSettingsSaveFailedMessage,
                                 )
                             }
 
                             MainSideEffect.ShowTestAlarmStartFailed -> {
                                 snackbarHostState.showSnackbar(
-                                    message = "Could not start test alarm. Please try again.",
+                                    message = testAlarmStartFailedMessage,
                                 )
                             }
                         }

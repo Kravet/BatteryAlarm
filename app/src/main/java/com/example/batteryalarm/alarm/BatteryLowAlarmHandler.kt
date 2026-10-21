@@ -22,12 +22,13 @@ class BatteryLowAlarmHandler @Inject constructor(
     fun handleBatteryLow(context: Context, onFinished: () -> Unit) {
         Log.d(TAG, "Handling battery low event")
         scope.launch {
-            try {
+            runAlarmEvent(
+                onFailure = { exception ->
+                    Log.e(TAG, "Failed to start low-battery alarm", exception)
+                },
+                onFinished = onFinished,
+            ) {
                 triggerAlarm(AlarmStartReason.SystemLowBattery)
-            } catch (exception: CancellationException) {
-                throw exception
-            } finally {
-                onFinished()
             }
         }
     }
@@ -35,13 +36,14 @@ class BatteryLowAlarmHandler @Inject constructor(
     fun handlePowerConnected(onFinished: () -> Unit) {
         Log.d(TAG, "Handling power connected event")
         scope.launch {
-            try {
+            runAlarmEvent(
+                onFailure = { exception ->
+                    Log.e(TAG, "Failed to stop alarm after power connection", exception)
+                },
+                onFinished = onFinished,
+            ) {
                 val result = alarmController.stopAlarm(AlarmStopReason.PowerConnected)
                 Log.d(TAG, "stopAlarm reason=PowerConnected result=$result")
-            } catch (exception: CancellationException) {
-                throw exception
-            } finally {
-                onFinished()
             }
         }
     }
@@ -75,6 +77,7 @@ class BatteryLowAlarmHandler @Inject constructor(
             is AlarmStartResult.Started,
             is AlarmStartResult.AlreadyActive,
             AlarmStartResult.Disabled,
+            AlarmStartResult.Superseded,
             -> Unit
         }
     }
@@ -84,5 +87,25 @@ class BatteryLowAlarmHandler @Inject constructor(
         const val TEST_ALARM_TICK_MS = 1_000L
         const val TEST_ALARM_DELAY_MS = TEST_ALARM_DELAY_SECONDS * TEST_ALARM_TICK_MS
         private const val TAG = "BatteryLowAlarmHandler"
+    }
+}
+
+/**
+ * A broadcast's pending result must be finished even if an alarm output fails.
+ * Cancellation is propagated; operational failures are reported without crashing the app.
+ */
+internal suspend fun runAlarmEvent(
+    onFailure: (Exception) -> Unit,
+    onFinished: () -> Unit,
+    operation: suspend () -> Unit,
+) {
+    try {
+        operation()
+    } catch (exception: CancellationException) {
+        throw exception
+    } catch (exception: Exception) {
+        onFailure(exception)
+    } finally {
+        onFinished()
     }
 }
