@@ -17,9 +17,6 @@ import com.example.batteryalarm.domain.update.LatestStableRelease
 import com.example.batteryalarm.domain.update.LatestStableReleaseSource
 import com.example.batteryalarm.domain.update.UpdateCheckAttemptStore
 import com.example.batteryalarm.domain.update.UpdateCheckerEnabled
-import com.example.batteryalarm.privacy.FakeAnalyticsCollectionController
-import com.example.batteryalarm.privacy.FakeCrashlyticsCollectionController
-import com.example.batteryalarm.privacy.FirebaseConsentApplier
 import com.example.batteryalarm.privacy.InMemoryPrivacyConsentRepository
 import com.example.batteryalarm.ui.privacy.PrivacySheetMode
 import com.example.batteryalarm.update.UpdateOpener
@@ -65,10 +62,6 @@ class MainViewModelTest {
         updateOpener: FakeUpdateOpener = FakeUpdateOpener(),
         analytics: FakeAppAnalytics = FakeAppAnalytics(),
         privacyConsentRepository: InMemoryPrivacyConsentRepository = InMemoryPrivacyConsentRepository(),
-        firebaseConsentApplier: FirebaseConsentApplier = FirebaseConsentApplier(
-            analyticsCollection = FakeAnalyticsCollectionController(),
-            crashlyticsCollection = FakeCrashlyticsCollectionController(),
-        ),
     ): MainViewModel {
         val handler = BatteryLowAlarmHandler(
             alarmController = alarmController,
@@ -83,7 +76,6 @@ class MainViewModelTest {
             updateOpener = updateOpener,
             analytics = analytics,
             privacyConsentRepository = privacyConsentRepository,
-            firebaseConsentApplier = firebaseConsentApplier,
         )
     }
 
@@ -175,7 +167,7 @@ class MainViewModelTest {
     }
 
     @Test
-    fun `stale consent text version shows onboarding and keeps collection off`() = runTest {
+    fun `stale consent text version requires a renewed decision`() = runTest {
         val privacyRepo = InMemoryPrivacyConsentRepository(
             PrivacyConsent(
                 analyticsEnabled = true,
@@ -184,30 +176,18 @@ class MainViewModelTest {
                 consentTextVersion = "1",
             ),
         )
-        val analyticsCollection = FakeAnalyticsCollectionController()
-        val crashlyticsCollection = FakeCrashlyticsCollectionController()
-        val viewModel = createViewModel(
-            privacyConsentRepository = privacyRepo,
-            firebaseConsentApplier = FirebaseConsentApplier(analyticsCollection, crashlyticsCollection),
-        )
+        val viewModel = createViewModel(privacyConsentRepository = privacyRepo)
 
         advanceUntilIdle()
 
         assertEquals(PrivacySheetMode.ONBOARDING, viewModel.uiState.value.privacySheetMode)
         assertFalse(viewModel.uiState.value.decisionRecorded)
-        assertEquals(false, analyticsCollection.enabledHistory.last())
-        assertEquals(false, crashlyticsCollection.enabledHistory.last())
     }
 
     @Test
-    fun `allow both persists consent enables both and closes onboarding`() = runTest {
+    fun `allow both persists consent and closes onboarding`() = runTest {
         val privacyRepo = InMemoryPrivacyConsentRepository()
-        val analyticsCollection = FakeAnalyticsCollectionController()
-        val crashlyticsCollection = FakeCrashlyticsCollectionController()
-        val viewModel = createViewModel(
-            privacyConsentRepository = privacyRepo,
-            firebaseConsentApplier = FirebaseConsentApplier(analyticsCollection, crashlyticsCollection),
-        )
+        val viewModel = createViewModel(privacyConsentRepository = privacyRepo)
 
         advanceUntilIdle()
         viewModel.onAllowBothPrivacy()
@@ -217,8 +197,6 @@ class MainViewModelTest {
         assertTrue(privacyRepo.current.analyticsEnabled)
         assertTrue(privacyRepo.current.crashlyticsEnabled)
         assertNull(viewModel.uiState.value.privacySheetMode)
-        assertEquals(true, analyticsCollection.enabledHistory.last())
-        assertEquals(true, crashlyticsCollection.enabledHistory.last())
     }
 
     @Test
@@ -237,14 +215,9 @@ class MainViewModelTest {
     }
 
     @Test
-    fun `dismiss without decision keeps collection off and hides sheet for session`() = runTest {
+    fun `dismiss without decision preserves disabled consent and hides sheet for session`() = runTest {
         val privacyRepo = InMemoryPrivacyConsentRepository()
-        val analyticsCollection = FakeAnalyticsCollectionController()
-        val crashlyticsCollection = FakeCrashlyticsCollectionController()
-        val viewModel = createViewModel(
-            privacyConsentRepository = privacyRepo,
-            firebaseConsentApplier = FirebaseConsentApplier(analyticsCollection, crashlyticsCollection),
-        )
+        val viewModel = createViewModel(privacyConsentRepository = privacyRepo)
 
         advanceUntilIdle()
         viewModel.onPrivacySheetDismiss()
@@ -254,8 +227,6 @@ class MainViewModelTest {
         assertNull(viewModel.uiState.value.privacySheetMode)
         assertFalse(privacyRepo.current.analyticsEnabled)
         assertFalse(privacyRepo.current.crashlyticsEnabled)
-        assertEquals(false, analyticsCollection.enabledHistory.last())
-        assertEquals(false, crashlyticsCollection.enabledHistory.last())
     }
 
     @Test

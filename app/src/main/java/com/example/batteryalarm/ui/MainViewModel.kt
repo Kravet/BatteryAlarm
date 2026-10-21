@@ -12,7 +12,6 @@ import com.example.batteryalarm.domain.privacy.PrivacyConsentRepository
 import com.example.batteryalarm.domain.update.CheckForAppUpdate
 import com.example.batteryalarm.domain.update.UpdateCheckAttemptStore
 import com.example.batteryalarm.domain.update.UpdateCheckResult
-import com.example.batteryalarm.privacy.FirebaseConsentApplier
 import com.example.batteryalarm.ui.privacy.PrivacySheetMode
 import com.example.batteryalarm.update.UpdateCheckLog
 import com.example.batteryalarm.update.UpdateOpener
@@ -39,7 +38,6 @@ class MainViewModel @Inject constructor(
     private val updateOpener: UpdateOpener,
     private val analytics: AppAnalytics,
     private val privacyConsentRepository: PrivacyConsentRepository,
-    private val firebaseConsentApplier: FirebaseConsentApplier,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MainUiState.from(alarmEnabled = false, isTestAlarmPending = false))
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -80,10 +78,6 @@ class MainViewModel @Inject constructor(
                     }
                 }
                 .collect { consent ->
-                    firebaseConsentApplier.apply(
-                        analyticsEnabled = consent.effectiveAnalyticsEnabled,
-                        crashlyticsEnabled = consent.effectiveCrashlyticsEnabled,
-                    )
                     _uiState.update { currentState ->
                         val hasCurrentDecision = !consent.needsDecision
                         val shouldShowOnboarding = consent.needsDecision &&
@@ -228,22 +222,6 @@ class MainViewModel @Inject constructor(
                 analyticsEnabled = analyticsEnabled,
                 crashlyticsEnabled = crashlyticsEnabled,
             )
-            firebaseConsentApplier.apply(
-                analyticsEnabled = analyticsEnabled,
-                crashlyticsEnabled = crashlyticsEnabled,
-            )
-            _uiState.update {
-                it.copy(
-                    analyticsEnabled = analyticsEnabled,
-                    crashlyticsEnabled = crashlyticsEnabled,
-                    decisionRecorded = true,
-                    privacySheetMode = if (it.privacySheetMode == PrivacySheetMode.ONBOARDING) {
-                        null
-                    } else {
-                        it.privacySheetMode
-                    },
-                )
-            }
         }
     }
 
