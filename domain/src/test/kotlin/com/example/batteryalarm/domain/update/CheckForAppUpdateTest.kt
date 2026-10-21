@@ -1,5 +1,6 @@
 package com.example.batteryalarm.domain.update
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -246,6 +247,30 @@ class CheckForAppUpdateTest {
 
         assertEquals(UpdateCheckResult.NoUsableRelease, checker())
         assertEquals(now, store.lastCheckAttemptAtMillis)
+    }
+
+    @Test
+    fun `cancelled release request propagates cancellation without throttling next attempt`() = runTest {
+        val store = FakeUpdateCheckAttemptStore()
+        val remote = FakeLatestStableReleaseSource(
+            throwOnFetch = CancellationException("cancelled"),
+        )
+        val checker = CheckForAppUpdate(
+            isEnabled = UpdateCheckerEnabled { true },
+            attemptStore = store,
+            releaseSource = remote,
+            installedVersionName = InstalledAppVersionName { "1.0.0" },
+            clockMillis = { 100L },
+        )
+
+        try {
+            checker()
+            org.junit.Assert.fail("Cancellation must propagate")
+        } catch (exception: CancellationException) {
+            assertEquals("cancelled", exception.message)
+        }
+        assertTrue(remote.wasCalled)
+        assertEquals(null, store.lastCheckAttemptAtMillis)
     }
 
     @Test
