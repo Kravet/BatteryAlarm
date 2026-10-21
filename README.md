@@ -1,5 +1,7 @@
 # Battery Alarm
 
+[![Android CI](https://github.com/Kravet/BatteryAlarm/actions/workflows/android-ci.yml/badge.svg?branch=master)](https://github.com/Kravet/BatteryAlarm/actions/workflows/android-ci.yml)
+
 A small Android app that monitors for Android's low-battery event and raises an audible, vibrating alarm with an actionable notification. The core alarm runs locally; analytics and crash reporting are optional and subject to separate user choices.
 
 This repository is also an **architecture case study**: a deliberately compact example of separating Android integration from testable Kotlin business logic, with documented boundaries and trade-offs.
@@ -17,11 +19,11 @@ This repository is also an **architecture case study**: a deliberately compact e
 - **Ports and adapters**: interfaces such as `AlarmController`, `AlarmSoundPlayer`, `AlarmNotifier` and `AlarmSettingsRepository` are implemented or wired by `:app`.
 - **Hilt composition**: `:app` wires domain implementations to Android sound, vibration, notifications, DataStore and Firebase.
 - **Observable settings**: DataStore drives monitoring through a single `AlarmSettingsCoordinator`.
-- **Separation of concern**: `AnalyticsAlarmController` decorates the alarm controller; the domain does not import Firebase.
+- **Separation of concerns**: `AnalyticsAlarmController` decorates the alarm controller; the domain does not import Firebase.
 - **Presentation**: Compose screens consume `MainUiState` and callback actions from `MainViewModel` (MVVM with unidirectional UI event/state flow).
 - **Consent ownership**: `PrivacyConsentRepository` stores decisions; an application-scoped coordinator applies effective choices to Firebase.
 
-## Architecture today
+## Current architecture
 
 ```mermaid
 flowchart TB
@@ -49,7 +51,7 @@ flowchart TB
 
 **Actual Gradle dependency:** `:app -> :domain`. The domain contains **both contracts and concrete domain classes**. `:app` can import `DefaultAlarmController` for Hilt wiring. This is a deliberate simplicity trade-off, **not a compiler-enforced implementation-access boundary**.
 
-A possible later split into `:domain-api`, `:domain-impl`, and `:composition` could make implementation access compiler-enforced. It is **not implemented** and is not necessary for the current project size.
+**Proposed, not implemented:** a later split into `:domain-api`, `:domain-impl`, and `:composition` could make implementation access compiler-enforced. It is not necessary for the current project size.
 
 ## Key flows
 
@@ -109,7 +111,7 @@ Requires an Android SDK, JDK 21 (as selected by the Gradle daemon toolchain), an
 ./gradlew :app:assembleDebug
 ```
 
-[Android CI](.github/workflows/android-ci.yml) runs both JVM test suites and a debug APK build for pull requests targeting `master`, pushes to `master`, and manual runs. The [draft portfolio PR](https://github.com/Kravet/BatteryAlarm/pull/1) includes a successful GitHub Actions run.
+The [Android CI workflow](.github/workflows/android-ci.yml) runs both JVM test suites and builds a debug APK for pull requests targeting `master`, pushes to `master`, and manual runs.
 
 The project also contains Android instrumented tests under `app/src/androidTest` for UI, consent and alarm scenarios. These require a connected device or emulator and relevant platform permissions; the reboot scenario is marked `@Ignore`, while process-kill test code exists. Test sources in the repository are **not evidence that a device matrix has been executed**.
 
