@@ -84,6 +84,8 @@ jobs:
 
       - name: Run device E2E and instrumentation tests
         uses: ReactiveCircus/android-emulator-runner@v2
+        env:
+          FULL_E2E: ${{ inputs.full_e2e }}
         with:
           api-level: 35
           target: google_apis
@@ -91,23 +93,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-boot-timeout: 600
-          script: |
-            chmod +x ./gradlew
-            adb shell svc power stayon true
-            # Capture diagnostics before android-emulator-runner shuts down the emulator.
-            trap 'timeout 20s adb logcat -d > "$RUNNER_TEMP/emulator-logcat.txt" || true' EXIT
-            # Keep PR checks focused; the process-kill/reboot scenarios need a
-            # dedicated device testing strategy, not a blocking PR check.
-            if [ "${{ inputs.full_e2e }}" = "true" ]; then
-              ./gradlew --no-daemon :app:connectedDebugAndroidTest
-            else
-              ./gradlew --no-daemon :app:connectedDebugAndroidTest \
-                -Pandroid.testInstrumentationRunnerArguments.class=com.example.batteryalarm.LowBatteryE2eTest,com.example.batteryalarm.TestAlarmE2eTest
-            fi
-
-      - name: Capture emulator logcat on failure
-        if: failure()
-        run: timeout 20s adb logcat -d > "$RUNNER_TEMP/emulator-logcat-post.txt" || true
+          script: bash .github/scripts/run-android-e2e.sh
 
       - name: Upload device test reports
         if: always()
