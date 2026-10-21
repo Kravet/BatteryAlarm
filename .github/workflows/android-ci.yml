@@ -16,7 +16,7 @@ on:
         default: false
 
 concurrency:
-  group: android-ci-${{ github.workflow }}-${{ github.ref }}
+  group: battery-alarm-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
