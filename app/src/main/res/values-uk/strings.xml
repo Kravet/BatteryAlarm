@@ -9,6 +9,8 @@
     <string name="stop_alarm">УТРИМУЙТЕ, щоб зупинити</string>
     <string name="hold_to_stop_alarm">Утримуйте 1 секунду, щоб зупинити сигнал</string>
     <string name="notification_permission_denied">Для сигналів про батарею потрібні сповіщення. Увімкніть їх у Налаштуваннях.</string>
+    <string name="alarm_settings_save_failed">Не вдалося зберегти налаштування сигналу батареї. Спробуйте ще раз.</string>
+    <string name="test_alarm_start_failed">Не вдалося запустити тестовий сигнал. Спробуйте ще раз.</string>
     <string name="monitoring_notification_title">Моніторинг батареї активний</string>
     <string name="monitoring_notification_body">Очікування подій низького заряду.</string>
     <string name="enable_battery_alarm">Увімкнути сигналізацію батареї</string>
