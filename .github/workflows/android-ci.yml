@@ -94,6 +94,8 @@ jobs:
           script: |
             chmod +x ./gradlew
             adb shell svc power stayon true
+            # Capture diagnostics before android-emulator-runner shuts down the emulator.
+            trap 'timeout 20s adb logcat -d > "$RUNNER_TEMP/emulator-logcat.txt" || true' EXIT
             # Keep PR checks focused; the process-kill/reboot scenarios need a
             # dedicated device testing strategy, not a blocking PR check.
             if [ "${{ inputs.full_e2e }}" = "true" ]; then
@@ -105,7 +107,7 @@ jobs:
 
       - name: Capture emulator logcat on failure
         if: failure()
-        run: adb logcat -d > "$RUNNER_TEMP/emulator-logcat.txt" || true
+        run: timeout 20s adb logcat -d > "$RUNNER_TEMP/emulator-logcat-post.txt" || true
 
       - name: Upload device test reports
         if: always()
@@ -117,4 +119,4 @@ jobs:
           path: |
             app/build/reports/androidTests/connected/
             app/build/outputs/androidTest-results/connected/
-            ${{ runner.temp }}/emulator-logcat.txt
+            ${{ runner.temp }}/emulator-logcat*.txt
