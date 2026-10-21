@@ -44,3 +44,64 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew --no-daemon :domain:test :app:testDebugUnitTest :app:assembleDebug
+
+  e2e:
+    name: Android emulator E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Enable hardware acceleration of the Linux Android emulator.
+      - name: Enable KVM access
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Configure Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android 36.1 SDK
+        run: sdkmanager "platforms;android-36.1" "build-tools;36.0.0"
+
+      - name: Configure Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run device E2E and instrumentation tests
+        uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-boot-timeout: 600
+          script: |
+            chmod +x ./gradlew
+            adb shell svc power stayon true
+            ./gradlew --no-daemon :app:connectedDebugAndroidTest
+
+      - name: Capture emulator logcat on failure
+        if: failure()
+        run: adb logcat -d > "$RUNNER_TEMP/emulator-logcat.txt" || true
+
+      - name: Upload device test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-emulator-test-reports
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            app/build/reports/androidTests/connected/
+            app/build/outputs/androidTest-results/connected/
+            ${{ runner.temp }}/emulator-logcat.txt
