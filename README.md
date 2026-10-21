@@ -10,7 +10,7 @@ This repository is also an **architecture case study**: a deliberately compact e
 
 <p align="center">
   <img src="docs/screenshots/main-screen.png" width="48%" alt="Battery Alarm main screen with low-battery protection enabled and the test alarm action" />
-  <img src="docs/screenshots/settings-screen.png" width="48%" alt="Privacy and diagnostics settings with analytics and crash reporting disabled" />
+  <img src="docs/screenshots/alarm-screen.png" width="48%" alt="Red low-battery alarm screen showing the current battery level and hold-to-stop control" />
 </p>
 
 ## Engineering highlights
