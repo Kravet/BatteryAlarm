@@ -1,5 +1,7 @@
 package com.example.batteryalarm.domain.update
 
+import kotlinx.coroutines.CancellationException
+
 class CheckForAppUpdate(
     private val isEnabled: UpdateCheckerEnabled,
     private val attemptStore: UpdateCheckAttemptStore,
@@ -22,6 +24,9 @@ class CheckForAppUpdate(
 
         val release = try {
             releaseSource.fetchLatestStableRelease()
+        } catch (exception: CancellationException) {
+            // Cancellation is not a failed check: do not consume the 24-hour attempt window.
+            throw exception
         } catch (_: Exception) {
             null
         }
