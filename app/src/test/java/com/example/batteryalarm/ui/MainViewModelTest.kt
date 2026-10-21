@@ -18,6 +18,9 @@ import com.example.batteryalarm.domain.update.LatestStableReleaseSource
 import com.example.batteryalarm.domain.update.UpdateCheckAttemptStore
 import com.example.batteryalarm.domain.update.UpdateCheckerEnabled
 import com.example.batteryalarm.privacy.InMemoryPrivacyConsentRepository
+import com.example.batteryalarm.ui.feature.AlarmFeature
+import com.example.batteryalarm.ui.feature.PrivacyFeature
+import com.example.batteryalarm.ui.feature.UpdateFeature
 import com.example.batteryalarm.ui.privacy.PrivacySheetMode
 import com.example.batteryalarm.update.UpdateOpener
 import kotlinx.coroutines.CancellationException
@@ -68,14 +71,20 @@ class MainViewModelTest {
             scope = this,
         )
         return MainViewModel(
-            alarmSettingsRepository = alarmSettingsRepository,
-            batteryLowAlarmHandler = handler,
-            alarmController = alarmController,
-            checkForAppUpdate = checkForAppUpdate,
-            updateCheckAttemptStore = updateCheckAttemptStore,
-            updateOpener = updateOpener,
-            analytics = analytics,
-            privacyConsentRepository = privacyConsentRepository,
+            alarm = AlarmFeature(
+                settingsRepository = alarmSettingsRepository,
+                batteryLowAlarmHandler = handler,
+                alarmController = alarmController,
+                analytics = analytics,
+            ),
+            updates = UpdateFeature(
+                checkForAppUpdate = checkForAppUpdate,
+                attemptStore = updateCheckAttemptStore,
+                updateOpener = updateOpener,
+                analytics = analytics,
+                alarmController = alarmController,
+            ),
+            privacy = PrivacyFeature(repository = privacyConsentRepository),
         )
     }
 
@@ -381,6 +390,7 @@ class MainViewModelTest {
 
         advanceUntilIdle()
         viewModel.onTestAlarmClick()
+        runCurrent() // Combined feature states are delivered via Flow.
 
         assertTrue(viewModel.uiState.value.isTestAlarmPending)
         assertEquals(BatteryLowAlarmHandler.TEST_ALARM_DELAY_SECONDS, viewModel.uiState.value.testAlarmSecondsRemaining)
@@ -400,6 +410,7 @@ class MainViewModelTest {
 
         advanceUntilIdle()
         viewModel.onTestAlarmClick()
+        runCurrent() // Combined feature states are delivered via Flow.
 
         assertEquals(4, viewModel.uiState.value.testAlarmSecondsRemaining)
 
@@ -423,6 +434,7 @@ class MainViewModelTest {
 
         advanceUntilIdle()
         viewModel.onTestAlarmClick()
+        runCurrent() // Combined feature states are delivered via Flow.
         assertTrue(viewModel.uiState.value.isTestAlarmPending)
         assertEquals(BatteryLowAlarmHandler.TEST_ALARM_DELAY_SECONDS, viewModel.uiState.value.testAlarmSecondsRemaining)
 
@@ -467,6 +479,7 @@ class MainViewModelTest {
         advanceUntilIdle()
 
         viewModel.onUpdateClick()
+        runCurrent()
 
         assertEquals(
             listOf("https://github.com/example/repo/releases/tag/v1.1.0"),
