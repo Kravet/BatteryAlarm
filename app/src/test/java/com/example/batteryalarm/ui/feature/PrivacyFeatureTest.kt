@@ -79,6 +79,7 @@ class PrivacyFeatureTest {
         runCurrent()
         feature.allowBoth(this)
         advanceUntilIdle()
+        runCurrent() // Deliver the repository Flow emission to the background observer.
         assertTrue(repo.current.analyticsEnabled)
         assertTrue(repo.current.crashlyticsEnabled)
         assertTrue(repo.current.decisionRecorded)
