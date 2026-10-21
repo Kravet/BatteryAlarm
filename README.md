@@ -4,6 +4,13 @@ A small Android app that monitors for Android's low-battery event and raises an 
 
 This repository is also an **architecture case study**: a deliberately compact example of separating Android integration from testable Kotlin business logic, with documented boundaries and trade-offs.
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/main-screen.png" width="48%" alt="Battery Alarm main screen with low-battery protection enabled and the test alarm action" />
+  <img src="docs/screenshots/settings-screen.png" width="48%" alt="Privacy and diagnostics settings with analytics and crash reporting disabled" />
+</p>
+
 ## Engineering highlights
 
 - **Android-free domain module**: alarm state transitions, settings coordination, volume ramp and stable update-checking rules live in `:domain` (Kotlin/JVM).
