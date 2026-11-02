@@ -57,10 +57,11 @@ class AndroidAlarmNotifier(
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setOngoing(true)
+            .setOngoing(false)
             .setAutoCancel(false)
             .setContentIntent(contentPendingIntent)
             .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setDeleteIntent(dismissPendingIntent)
             .addAction(
                 0,
                 context.getString(R.string.dismiss),
