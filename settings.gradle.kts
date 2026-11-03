@@ -24,5 +24,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "Battery Alarm"
 include(":app")
-include(":domain")
+include(":domain-api")
+include(":domain-impl")
+include(":domain-di")
  

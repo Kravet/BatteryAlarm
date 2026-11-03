@@ -3,6 +3,7 @@ package com.example.batteryalarm.update
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import com.example.batteryalarm.domain.update.ReleasePageUrlPolicy
 
 fun interface UpdateOpener {
     fun openReleasePage(url: String)
@@ -10,11 +11,11 @@ fun interface UpdateOpener {
 
 class AndroidUpdateOpener(
     private val appContext: Context,
-    private val isAllowedUrl: (String) -> Boolean = { true },
+    private val releasePageUrlPolicy: ReleasePageUrlPolicy = ReleasePageUrlPolicy { true },
 ) : UpdateOpener {
     override fun openReleasePage(url: String) {
         val trimmed = url.trim()
-        if (trimmed.isEmpty() || !isAllowedUrl(trimmed)) {
+        if (trimmed.isEmpty() || !releasePageUrlPolicy.isAllowed(trimmed)) {
             return
         }
         try {

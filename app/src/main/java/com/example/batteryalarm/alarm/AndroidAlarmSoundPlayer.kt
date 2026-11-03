@@ -10,20 +10,16 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
-import com.example.batteryalarm.di.ApplicationScope
 import com.example.batteryalarm.domain.AlarmSoundPlayer
 import com.example.batteryalarm.domain.AlarmSoundSession
 import com.example.batteryalarm.domain.AlarmSoundSessionPlayback
-import com.example.batteryalarm.domain.VolumeRampController
-import kotlinx.coroutines.CoroutineScope
 
 class AndroidAlarmSoundPlayer(
     private val context: Context,
-    @param:ApplicationScope private val scope: CoroutineScope,
+    private val session: AlarmSoundSession,
 ) : AlarmSoundPlayer {
     private val lock = Any()
     private val audioManager = context.getSystemService(AudioManager::class.java)
-    private val session = AlarmSoundSession(VolumeRampController(scope))
     private var mediaPlayer: MediaPlayer? = null
     private var audioFocusRequest: AudioFocusRequest? = null
 

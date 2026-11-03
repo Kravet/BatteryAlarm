@@ -3,7 +3,7 @@ package com.example.batteryalarm.ui.feature
 import com.example.batteryalarm.analytics.AppAnalytics
 import com.example.batteryalarm.domain.AlarmController
 import com.example.batteryalarm.domain.AlarmState
-import com.example.batteryalarm.domain.update.CheckForAppUpdate
+import com.example.batteryalarm.domain.update.AppUpdateChecker
 import com.example.batteryalarm.domain.update.UpdateCheckAttemptStore
 import com.example.batteryalarm.domain.update.UpdateCheckResult
 import com.example.batteryalarm.ui.AppUpdateUiModel
@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 
 /** Presentation orchestration around the existing update-check use case. */
 class UpdateFeature @Inject constructor(
-    private val checkForAppUpdate: CheckForAppUpdate,
+    private val checkForAppUpdate: AppUpdateChecker,
     private val attemptStore: UpdateCheckAttemptStore,
     private val updateOpener: UpdateOpener,
     private val analytics: AppAnalytics,

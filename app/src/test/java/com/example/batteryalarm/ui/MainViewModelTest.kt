@@ -11,12 +11,9 @@ import com.example.batteryalarm.domain.AlarmStopReason
 import com.example.batteryalarm.domain.AlarmStopResult
 import com.example.batteryalarm.domain.privacy.PrivacyConsent
 import com.example.batteryalarm.domain.update.AppUpdate
-import com.example.batteryalarm.domain.update.CheckForAppUpdate
-import com.example.batteryalarm.domain.update.InstalledAppVersionName
-import com.example.batteryalarm.domain.update.LatestStableRelease
-import com.example.batteryalarm.domain.update.LatestStableReleaseSource
+import com.example.batteryalarm.domain.update.AppUpdateChecker
 import com.example.batteryalarm.domain.update.UpdateCheckAttemptStore
-import com.example.batteryalarm.domain.update.UpdateCheckerEnabled
+import com.example.batteryalarm.domain.update.UpdateCheckResult
 import com.example.batteryalarm.privacy.InMemoryPrivacyConsentRepository
 import com.example.batteryalarm.ui.feature.AlarmFeature
 import com.example.batteryalarm.ui.feature.PrivacyFeature
@@ -60,7 +57,7 @@ class MainViewModelTest {
     private fun TestScope.createViewModel(
         alarmSettingsRepository: FakeAlarmSettingsRepository = FakeAlarmSettingsRepository(enabled = false),
         alarmController: FakeAlarmController = FakeAlarmController(),
-        checkForAppUpdate: CheckForAppUpdate = disabledUpdateChecker(),
+        checkForAppUpdate: AppUpdateChecker = disabledUpdateChecker(),
         updateCheckAttemptStore: UpdateCheckAttemptStore = InMemoryUpdateCheckAttemptStore(),
         updateOpener: FakeUpdateOpener = FakeUpdateOpener(),
         analytics: FakeAppAnalytics = FakeAppAnalytics(),
@@ -88,51 +85,21 @@ class MainViewModelTest {
         )
     }
 
-    private fun disabledUpdateChecker(
-        store: UpdateCheckAttemptStore = InMemoryUpdateCheckAttemptStore(),
-    ): CheckForAppUpdate = CheckForAppUpdate(
-        isEnabled = UpdateCheckerEnabled { false },
-        attemptStore = store,
-        releaseSource = object : LatestStableReleaseSource {
-            override suspend fun fetchLatestStableRelease(): LatestStableRelease? = null
-        },
-        installedVersionName = InstalledAppVersionName { "1.0.0" },
-        clockMillis = { 0L },
-    )
+    private fun disabledUpdateChecker(): AppUpdateChecker = AppUpdateChecker { UpdateCheckResult.Disabled }
 
     private fun availableUpdateChecker(
-        store: UpdateCheckAttemptStore = InMemoryUpdateCheckAttemptStore(),
         update: AppUpdate = AppUpdate(
             versionName = "1.1.0",
             releaseNotes = "Notes",
             releasePageUrl = "https://github.com/example/repo/releases/tag/v1.1.0",
         ),
-    ): CheckForAppUpdate = CheckForAppUpdate(
-        isEnabled = UpdateCheckerEnabled { true },
-        attemptStore = store,
-        releaseSource = object : LatestStableReleaseSource {
-            override suspend fun fetchLatestStableRelease(): LatestStableRelease = LatestStableRelease(
-                tagName = "v${update.versionName}",
-                body = update.releaseNotes,
-                htmlUrl = update.releasePageUrl,
-            )
-        },
-        installedVersionName = InstalledAppVersionName { "1.0.0" },
-        clockMillis = { 1L },
-    )
+    ): AppUpdateChecker = AppUpdateChecker { UpdateCheckResult.Available(update) }
 
     private fun pendingWithinIntervalChecker(
         store: InMemoryUpdateCheckAttemptStore,
-    ): CheckForAppUpdate = CheckForAppUpdate(
-        isEnabled = UpdateCheckerEnabled { true },
-        attemptStore = store,
-        releaseSource = object : LatestStableReleaseSource {
-            override suspend fun fetchLatestStableRelease(): LatestStableRelease? =
-                error("Remote should not be called within interval")
-        },
-        installedVersionName = InstalledAppVersionName { "1.0.0" },
-        clockMillis = { 1_000L },
-    )
+    ): AppUpdateChecker = AppUpdateChecker {
+        UpdateCheckResult.Available(requireNotNull(store.pendingUpdate))
+    }
 
     @Test
     fun `composes alarm update and privacy states without overwriting each other`() = runTest {
@@ -147,7 +114,7 @@ class MainViewModelTest {
         )
         val viewModel = createViewModel(
             alarmSettingsRepository = FakeAlarmSettingsRepository(enabled = true),
-            checkForAppUpdate = availableUpdateChecker(store = store),
+            checkForAppUpdate = availableUpdateChecker(),
             updateCheckAttemptStore = store,
             privacyConsentRepository = consent,
         )
@@ -175,7 +142,7 @@ class MainViewModelTest {
     fun `test alarm countdown preserves unrelated privacy and update state`() = runTest {
         val store = InMemoryUpdateCheckAttemptStore()
         val viewModel = createViewModel(
-            checkForAppUpdate = availableUpdateChecker(store = store),
+            checkForAppUpdate = availableUpdateChecker(),
             updateCheckAttemptStore = store,
         )
         advanceUntilIdle()
@@ -554,18 +521,17 @@ class MainViewModelTest {
             alarmController = FakeAlarmController(
                 initialState = AlarmState.Active(AlarmStartReason.SystemLowBattery),
             ),
-            checkForAppUpdate = availableUpdateChecker(store = store),
+            checkForAppUpdate = availableUpdateChecker(),
             updateCheckAttemptStore = store,
         )
 
         advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.pendingUpdate)
-        assertEquals("1.1.0", store.pendingUpdate?.versionName)
     }
 
     @Test
-    fun `when relaunching within interval, then persisted pending update is shown again`() = runTest {
+    fun `when checker returns stored pending update, then it is shown again`() = runTest {
         val store = InMemoryUpdateCheckAttemptStore(
             lastCheckAttemptAtMillis = 500L,
             pendingUpdate = AppUpdate(
@@ -593,9 +559,15 @@ class MainViewModelTest {
 
     @Test
     fun `when update is clicked, then persisted pending update is cleared`() = runTest {
-        val store = InMemoryUpdateCheckAttemptStore()
+        val store = InMemoryUpdateCheckAttemptStore(
+            pendingUpdate = AppUpdate(
+                versionName = "1.1.0",
+                releaseNotes = "Notes",
+                releasePageUrl = "https://github.com/example/repo/releases/tag/v1.1.0",
+            ),
+        )
         val viewModel = createViewModel(
-            checkForAppUpdate = availableUpdateChecker(store = store),
+            checkForAppUpdate = availableUpdateChecker(),
             updateCheckAttemptStore = store,
         )
         advanceUntilIdle()

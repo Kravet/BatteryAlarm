@@ -95,7 +95,8 @@ androidComponents {
 }
 
 dependencies {
-    implementation(project(":domain"))
+    implementation(project(":domain-api"))
+    implementation(project(":domain-di"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

@@ -4,11 +4,8 @@ import com.example.batteryalarm.analytics.FakeAppAnalytics
 import com.example.batteryalarm.domain.AlarmStartReason
 import com.example.batteryalarm.domain.AlarmState
 import com.example.batteryalarm.domain.update.AppUpdate
-import com.example.batteryalarm.domain.update.CheckForAppUpdate
-import com.example.batteryalarm.domain.update.InstalledAppVersionName
-import com.example.batteryalarm.domain.update.LatestStableRelease
-import com.example.batteryalarm.domain.update.LatestStableReleaseSource
-import com.example.batteryalarm.domain.update.UpdateCheckerEnabled
+import com.example.batteryalarm.domain.update.AppUpdateChecker
+import com.example.batteryalarm.domain.update.UpdateCheckResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -21,28 +18,17 @@ import org.junit.Test
 class UpdateFeatureTest {
     private val releaseUrl = "https://github.com/example/releases/tag/v1.1.0"
 
-    private fun checker(
-        store: FeatureUpdateStore,
-        enabled: Boolean = true,
-        release: LatestStableRelease? = LatestStableRelease("v1.1.0", "Release notes", releaseUrl),
-    ): CheckForAppUpdate = CheckForAppUpdate(
-        isEnabled = UpdateCheckerEnabled { enabled },
-        attemptStore = store,
-        releaseSource = object : LatestStableReleaseSource {
-            override suspend fun fetchLatestStableRelease(): LatestStableRelease? = release
-        },
-        installedVersionName = InstalledAppVersionName { "1.0.0" },
-        clockMillis = { 1_000L },
-    )
+    private fun checker(result: UpdateCheckResult): AppUpdateChecker = AppUpdateChecker { result }
 
     private fun feature(
         store: FeatureUpdateStore = FeatureUpdateStore(),
-        enabled: Boolean = true,
-        release: LatestStableRelease? = LatestStableRelease("v1.1.0", "Release notes", releaseUrl),
+        result: UpdateCheckResult = UpdateCheckResult.Available(
+            AppUpdate("1.1.0", "Release notes", releaseUrl),
+        ),
         controller: FeatureAlarmController = FeatureAlarmController(),
         opener: FeatureUpdateOpener = FeatureUpdateOpener(),
         analytics: FakeAppAnalytics = FakeAppAnalytics(),
-    ) = UpdateFeature(checker(store, enabled, release), store, opener, analytics, controller)
+    ) = UpdateFeature(checker(result), store, opener, analytics, controller)
 
     @Test fun `available update maps domain result to presentation and analytics`() = runTest {
         val analytics = FakeAppAnalytics()
@@ -55,12 +41,11 @@ class UpdateFeatureTest {
         assertEquals("Release notes", feature.state.value.pendingUpdate?.releaseNotes)
         assertEquals(releaseUrl, feature.state.value.pendingUpdate?.releasePageUrl)
         assertEquals(listOf("1.1.0"), analytics.updateAvailableShown)
-        assertEquals("1.1.0", store.pending?.versionName)
     }
 
     @Test fun `disabled checker never surfaces an update`() = runTest {
         val analytics = FakeAppAnalytics()
-        val feature = feature(enabled = false, analytics = analytics)
+        val feature = feature(result = UpdateCheckResult.Disabled, analytics = analytics)
         feature.checkOnStart(this)
         advanceUntilIdle()
         assertNull(feature.state.value.pendingUpdate)
@@ -68,7 +53,7 @@ class UpdateFeatureTest {
     }
 
     @Test fun `same installed version does not surface an update`() = runTest {
-        val feature = feature(release = LatestStableRelease("v1.0.0", null, releaseUrl))
+        val feature = feature(result = UpdateCheckResult.UpToDate)
         feature.checkOnStart(this)
         advanceUntilIdle()
         assertNull(feature.state.value.pendingUpdate)
@@ -85,16 +70,13 @@ class UpdateFeatureTest {
         advanceUntilIdle()
 
         assertNull(feature.state.value.pendingUpdate)
-        assertEquals("1.1.0", store.pending?.versionName)
         assertTrue(analytics.updateAvailableShown.isEmpty())
     }
 
-    @Test fun `pending update survives throttled app launch`() = runTest {
-        val store = FeatureUpdateStore(
-            checkedAt = 500L,
-            pending = AppUpdate("1.1.0", "Previously found", releaseUrl),
+    @Test fun `checker result for a previously persisted update is presented`() = runTest {
+        val feature = feature(
+            result = UpdateCheckResult.Available(AppUpdate("1.1.0", "Previously found", releaseUrl)),
         )
-        val feature = feature(store = store, release = null)
         feature.checkOnStart(this)
         advanceUntilIdle()
         assertEquals("Previously found", feature.state.value.pendingUpdate?.releaseNotes)
@@ -120,7 +102,7 @@ class UpdateFeatureTest {
     @Test fun `click with no pending update has no side effects`() = runTest {
         val opener = FeatureUpdateOpener()
         val analytics = FakeAppAnalytics()
-        val feature = feature(enabled = false, opener = opener, analytics = analytics)
+        val feature = feature(result = UpdateCheckResult.Disabled, opener = opener, analytics = analytics)
         feature.openPending(this)
         advanceUntilIdle()
         assertTrue(opener.opened.isEmpty())
@@ -129,7 +111,7 @@ class UpdateFeatureTest {
 
     @Test fun `unavailable release leaves update hidden without analytics`() = runTest {
         val analytics = FakeAppAnalytics()
-        val feature = feature(release = null, analytics = analytics)
+        val feature = feature(result = UpdateCheckResult.NoUsableRelease, analytics = analytics)
         feature.checkOnStart(this)
         advanceUntilIdle()
         assertNull(feature.state.value.pendingUpdate)

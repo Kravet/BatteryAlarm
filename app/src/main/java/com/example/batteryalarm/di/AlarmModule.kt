@@ -8,11 +8,10 @@ import com.example.batteryalarm.alarm.AndroidBatteryLowMonitoring
 import com.example.batteryalarm.analytics.AnalyticsAlarmController
 import com.example.batteryalarm.analytics.AppAnalytics
 import com.example.batteryalarm.domain.AlarmController
-import com.example.batteryalarm.domain.AlarmDomainFactory
 import com.example.batteryalarm.domain.AlarmNotifier
-import com.example.batteryalarm.domain.AlarmSettingsCoordinator
 import com.example.batteryalarm.domain.AlarmSettingsRepository
 import com.example.batteryalarm.domain.AlarmSoundPlayer
+import com.example.batteryalarm.domain.AlarmSoundSession
 import com.example.batteryalarm.domain.AlarmVibrator
 import com.example.batteryalarm.domain.BatteryLowMonitoring
 import com.example.batteryalarm.settings.AndroidAlarmSettingsRepository
@@ -48,26 +47,12 @@ object AlarmModule {
 
     @Provides
     @Singleton
-    fun provideAlarmSettingsCoordinator(
-        alarmSettingsRepository: AlarmSettingsRepository,
-        batteryLowMonitoring: BatteryLowMonitoring,
-        alarmController: AlarmController,
-        @ApplicationScope scope: CoroutineScope,
-    ): AlarmSettingsCoordinator = AlarmDomainFactory.createAlarmSettingsCoordinator(
-        settingsRepository = alarmSettingsRepository,
-        batteryLowMonitoring = batteryLowMonitoring,
-        alarmController = alarmController,
-        scope = scope,
-    )
-
-    @Provides
-    @Singleton
     fun provideAlarmSoundPlayer(
         @ApplicationContext context: Context,
-        @ApplicationScope scope: CoroutineScope,
+        session: AlarmSoundSession,
     ): AlarmSoundPlayer = AndroidAlarmSoundPlayer(
         context = context,
-        scope = scope,
+        session = session,
     )
 
     @Provides
@@ -85,18 +70,10 @@ object AlarmModule {
     @Provides
     @Singleton
     fun provideAlarmController(
-        settingsRepository: AlarmSettingsRepository,
-        soundPlayer: AlarmSoundPlayer,
-        vibrator: AlarmVibrator,
-        notifier: AlarmNotifier,
+        @RawAlarmController delegate: AlarmController,
         analytics: AppAnalytics,
     ): AlarmController = AnalyticsAlarmController(
-        delegate = AlarmDomainFactory.createAlarmController(
-            settingsRepository = settingsRepository,
-            soundPlayer = soundPlayer,
-            vibrator = vibrator,
-            notifier = notifier,
-        ),
+        delegate = delegate,
         analytics = analytics,
     )
 }

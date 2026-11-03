@@ -2,9 +2,9 @@ package com.example.batteryalarm.di
 
 import android.content.Context
 import com.example.batteryalarm.BuildConfig
-import com.example.batteryalarm.domain.update.CheckForAppUpdate
 import com.example.batteryalarm.domain.update.InstalledAppVersionName
 import com.example.batteryalarm.domain.update.LatestStableReleaseSource
+import com.example.batteryalarm.domain.update.ReleasePageUrlPolicy
 import com.example.batteryalarm.domain.update.UpdateCheckAttemptStore
 import com.example.batteryalarm.domain.update.UpdateCheckerEnabled
 import com.example.batteryalarm.update.AndroidUpdateOpener
@@ -68,39 +68,23 @@ object UpdateModule {
 
     @Provides
     @Singleton
-    fun provideCheckForAppUpdate(
-        isEnabled: UpdateCheckerEnabled,
-        attemptStore: UpdateCheckAttemptStore,
-        releaseSource: LatestStableReleaseSource,
-        installedVersionName: InstalledAppVersionName,
+    fun provideReleasePageUrlPolicy(
         updateConfig: UpdateConfig,
-    ): CheckForAppUpdate = CheckForAppUpdate(
-        isEnabled = isEnabled,
-        attemptStore = attemptStore,
-        releaseSource = releaseSource,
-        installedVersionName = installedVersionName,
-        isAllowedReleasePageUrl = { url ->
-            GitHubReleaseUrl.isAllowedReleasePageUrl(
-                url = url,
-                owner = updateConfig.githubOwner,
-                repo = updateConfig.githubRepo,
-            )
-        },
-    )
+    ): ReleasePageUrlPolicy = ReleasePageUrlPolicy { url ->
+        GitHubReleaseUrl.isAllowedReleasePageUrl(
+            url = url,
+            owner = updateConfig.githubOwner,
+            repo = updateConfig.githubRepo,
+        )
+    }
 
     @Provides
     @Singleton
     fun provideUpdateOpener(
         @ApplicationContext context: Context,
-        updateConfig: UpdateConfig,
+        releasePageUrlPolicy: ReleasePageUrlPolicy,
     ): UpdateOpener = AndroidUpdateOpener(
         appContext = context,
-        isAllowedUrl = { url ->
-            GitHubReleaseUrl.isAllowedReleasePageUrl(
-                url = url,
-                owner = updateConfig.githubOwner,
-                repo = updateConfig.githubRepo,
-            )
-        },
+        releasePageUrlPolicy = releasePageUrlPolicy,
     )
 }

@@ -4,13 +4,12 @@ This is a **prioritized list of follow-up work**, not a list of architectural de
 
 ## Portfolio quality — high ROI
 
-- [x] **CI verified** — `.github/workflows/android-ci.yml` runs `:domain:test`, `:app:testDebugUnitTest` and `:app:assembleDebug`. The initial verification passed on the portfolio branch; check subsequent runs for regressions.
+- [x] **CI verified** — `.github/workflows/android-ci.yml` checks the app compile boundary, runs `:domain-api:test`, `:domain-impl:test`, `:app:testDebugUnitTest` and `:app:assembleDebug`, plus API 35 emulator E2E.
 - [ ] **P3 — Review ViewModel orchestration when complexity grows** — `MainViewModel` owns alarm, update and privacy UI workflows. Current decision: keep one screen-level ViewModel; the persisted consent repository remains the source of truth, and further collaborators would add indirection without a demonstrated need. Revisit when workflows gain a second consumer or become hard to test.
 - [ ] **P2 — Check critical Android entry-point behavior** — review how the foreground service, activity and receiver report failures. Repair confirmed issues without broad restructuring.
 
 ## Architecture — intentional trade-offs
 
-- [ ] **P3 — Optional artifact-level domain implementation boundary.** The current graph is `:app -> :domain`; the two default alarm implementations are Kotlin `internal` and Hilt obtains them through `AlarmDomainFactory`. This limits direct references from Kotlin app source, while both contracts and implementations remain in the same domain artifact. If artifact-level isolation becomes worthwhile, consider `:domain-api`, `:domain-impl`, and `:composition` (with `:app -> :domain-api`, `:app -> :composition`, `:composition -> :domain-impl`, `:domain-impl -> :domain-api`). **That stronger module split is not implemented.**
 - [ ] **P3 — Review Compose file size only for real cohesion problems.** `MainSettingsContent`, `PrivacyBottomSheet`, and `LowBatteryAlarmScreen` are sizeable, but line count alone is not a reason for more files.
 - [ ] **P3 — Evaluate richer UI-specific models where domain objects leak into Compose.** Existing `MainUiState` and `AppUpdateUiModel` already provide presentation models; do not add mapping layers without a concrete need.
 
@@ -43,6 +42,7 @@ P1 = required to close a confirmed release risk, P2 = validation/polish before b
 - [x] Persisted separate Analytics and Crashlytics consent with application-scoped Firebase application.
 - [x] Stable-only GitHub update checker with SemVer and attempt throttling.
 - [x] Synchronization of domain alarm transitions with explicit stop-over-start handling.
+- [x] Three-module domain boundary: app compiles against `:domain-api` and `:domain-di`; `:domain-impl` is a runtime-only transitive dependency of the app. `.github/scripts/verify-domain-boundary.sh` guards the compile classpath.
 - [x] Localized hold-to-stop copy aligned with the existing 1,000 ms gesture.
 - [x] Unit and Android instrumentation **test sources** (not a claim that every device scenario has passed).
 
