@@ -20,7 +20,7 @@ This repository is also an **architecture case study**: a deliberately compact e
 - **Hilt composition**: `:app` wires domain implementations to Android sound, vibration, notifications, DataStore and Firebase.
 - **Observable settings**: DataStore drives monitoring through a single `AlarmSettingsCoordinator`.
 - **Separation of concerns**: `AnalyticsAlarmController` decorates the alarm controller; the domain does not import Firebase.
-- **Presentation**: Compose screens consume `MainUiState` and callback actions from `MainViewModel` (MVVM with unidirectional UI event/state flow).
+- **Presentation**: `MainViewModel` combines screen state and routes UI actions; `AlarmFeature`, `PrivacyFeature` and `UpdateFeature` each own their presentation state and orchestration.
 - **Consent ownership**: `PrivacyConsentRepository` stores decisions; an application-scoped coordinator applies effective choices to Firebase.
 
 ## Current architecture
@@ -29,6 +29,7 @@ This repository is also an **architecture case study**: a deliberately compact e
 flowchart TB
     subgraph App[" :app — Android application"]
       UI["Compose UI + MainViewModel"]
+      Features["AlarmFeature / PrivacyFeature / UpdateFeature"]
       DI["Hilt modules / composition"]
       Adapters["Android adapters: DataStore, audio, vibration, notifications"]
       Runtime["Monitoring service + receivers"]
@@ -39,7 +40,8 @@ flowchart TB
       Logic["Alarm controller + settings coordinator"]
       Update["Stable update-checking rules"]
     end
-    UI --> Contracts
+    UI --> Features
+    Features --> Contracts
     Runtime --> Contracts
     DI --> Logic
     DI --> Adapters
@@ -71,26 +73,26 @@ The domain controller centralizes alarm state changes; concurrent transitions ar
 **Settings and UI**
 
 ```text
-Compose action → MainViewModel → AlarmSettingsRepository → DataStore
-                                               ↓ Flow
-                                      MainViewModel → MainUiState → Compose
-                                               ↓ Flow
-                                    AlarmSettingsCoordinator → monitoring
+Compose action → MainViewModel → AlarmFeature → AlarmSettingsRepository → DataStore
+                                  ↑                    ↓ Flow
+Compose ← MainUiState ← MainViewModel ← AlarmFeature
+
+DataStore Flow → AlarmSettingsCoordinator → monitoring
 ```
 
 **Privacy consent**
 
 ```text
-Consent UI → MainViewModel → PrivacyConsentRepository (DataStore)
-                                    ↓ effective consent
-                           FirebaseConsentCoordinator
-                                    ↓
-                           Firebase Analytics / Crashlytics
+Consent UI → MainViewModel → PrivacyFeature → PrivacyConsentRepository (DataStore)
+                                                  ↓ effective consent
+                                         FirebaseConsentCoordinator
+                                                  ↓
+                                         Firebase Analytics / Crashlytics
 ```
 
 Consent defaults to off in the Android manifest. Dismissing the first-run consent sheet does not opt in. The collection coordinator observes **effective** permissions so an outdated consent-text version does not authorize collection. See [privacy policy](PRIVACY.md).
 
-**App updates**: an in-app checker compares the installed version with GitHub's latest **stable** release using SemVer, throttles attempts and opens allowlisted release pages. It does not auto-install APKs or check prereleases.
+**App updates**: `UpdateFeature` runs an in-app checker that compares the installed version with GitHub's latest **stable** release using SemVer, throttles attempts and opens allowlisted release pages. It does not auto-install APKs or check prereleases.
 
 ## Code worth reviewing
 
@@ -98,7 +100,7 @@ Consent defaults to off in the Android manifest. Dismissing the first-run consen
 | --- | --- | --- |
 | Alarm state and concurrency | [DefaultAlarmController](domain/src/main/kotlin/com/example/batteryalarm/domain/DefaultAlarmController.kt) | [Controller tests](domain/src/test/kotlin/com/example/batteryalarm/domain/DefaultAlarmControllerTest.kt) |
 | DI / adapter composition | [AlarmModule](app/src/main/java/com/example/batteryalarm/di/AlarmModule.kt) | [Alarm decorator tests](app/src/test/java/com/example/batteryalarm/analytics/AnalyticsAlarmControllerTest.kt) |
-| MVVM / UI state | [MainViewModel](app/src/main/java/com/example/batteryalarm/ui/MainViewModel.kt) | [ViewModel tests](app/src/test/java/com/example/batteryalarm/ui/MainViewModelTest.kt) |
+| Presentation state and orchestration | [MainViewModel](app/src/main/java/com/example/batteryalarm/ui/MainViewModel.kt), [feature holders](app/src/main/java/com/example/batteryalarm/ui/feature/) | [ViewModel tests](app/src/test/java/com/example/batteryalarm/ui/MainViewModelTest.kt), [feature tests](app/src/test/java/com/example/batteryalarm/ui/feature/) |
 | Privacy side effects | [FirebaseConsentCoordinator](app/src/main/java/com/example/batteryalarm/privacy/FirebaseConsentCoordinator.kt) | [Consent coordinator tests](app/src/test/java/com/example/batteryalarm/privacy/FirebaseConsentCoordinatorTest.kt) |
 | Update decision logic | [CheckForAppUpdate](domain/src/main/kotlin/com/example/batteryalarm/domain/update/CheckForAppUpdate.kt) | [Update checker tests](domain/src/test/kotlin/com/example/batteryalarm/domain/update/CheckForAppUpdateTest.kt) |
 
@@ -111,9 +113,9 @@ Requires an Android SDK, JDK 21 (as selected by the Gradle daemon toolchain), an
 ./gradlew :app:assembleDebug
 ```
 
-The [Android CI workflow](.github/workflows/android-ci.yml) runs both JVM test suites and builds a debug APK for pull requests targeting `master`, pushes to `master`, and manual runs.
+The [Android CI workflow](.github/workflows/android-ci.yml) runs `:domain:test`, `:app:testDebugUnitTest`, `:app:assembleDebug`, and an API 35 Google APIs emulator smoke suite on pull requests and pushes targeting `master`. A manual workflow run does the same by default and can set `full_e2e` to run the full connected instrumentation suite.
 
-The project also contains Android instrumented tests under `app/src/androidTest` for UI, consent and alarm scenarios. These require a connected device or emulator and relevant platform permissions; the reboot scenario is marked `@Ignore`, while process-kill test code exists. Test sources in the repository are **not evidence that a device matrix has been executed**.
+The emulator smoke suite covers the low-battery broadcast and test-alarm flows. Other Android instrumented tests under `app/src/androidTest` cover UI, consent and alarm scenarios and require a connected device or emulator with relevant platform permissions. The reboot scenario is marked `@Ignore`, and the process-kill scenario is included only in the full suite. CI currently uses one API 35 emulator profile, not a device matrix.
 
 Production APK signing uses local `keystore.properties` or environment variables (see [example](keystore.properties.example)); never commit signing material. For APK distribution channels and signing constraints, see [distribution guide](docs/distribution.md) and the [public releases repository](https://github.com/Kravet/battery-alarm-releases).
 
@@ -124,7 +126,7 @@ Production APK signing uses local `keystore.properties` or environment variables
 | Two Gradle modules rather than a larger multi-module graph | Keeps a small app understandable and testable | App can import domain implementation classes |
 | Hilt bindings in app | One discoverable place for Android/domain wiring | App composition layer knows concrete classes |
 | Mutable state in a synchronized domain controller | Small API, serialized output transitions | Outputs are synchronous; platform edge cases still need device validation |
-| MVVM with `StateFlow` and separate one-off side effects | Predictable UI ownership, focused tests | One ViewModel currently orchestrates alarm, updates and privacy |
+| MVVM with `StateFlow` and separate one-off side effects | `MainViewModel` composes screen state while `AlarmFeature`, `PrivacyFeature` and `UpdateFeature` own focused presentation logic | Feature holders add indirection; the ViewModel remains responsible for screen-level composition |
 | Separate consent observer | UI does not call Firebase directly; stored settings are authoritative | Correctness still relies on Firebase SDK and Android runtime validation |
 
 ## Future improvements
@@ -132,9 +134,8 @@ Production APK signing uses local `keystore.properties` or environment variables
 These are **proposals, not implemented features or confirmed defects**.
 
 - **Architectural isolation**: consider `:domain-api` + `:domain-impl` + `:composition` if the implementation boundary becomes important enough to justify more modules.
-- **ViewModel responsibilities**: split update/consent orchestration only if additional features make the current ViewModel difficult to evolve.
-- **Device-test automation**: CI covers JVM unit tests and a debug build; automated emulator and physical-device scenarios remain a separate reliability track.
-- **Device reliability**: validate reboot, process death, OEM battery policies, permission changes, low-battery and charging races on real devices before broader user distribution.
+- **Presentation boundaries**: the three feature holders are currently classes in `:app`; consider stronger module boundaries only if their complexity justifies them.
+- **Device reliability**: validate reboot, OEM battery policies, permission changes, low-battery and charging races on physical devices before broader user distribution.
 - **Release readiness**: verify signed APK upgrades and Google Play compatibility independently of this architecture review.
 
 See the maintained [engineering backlog](NEXT_STEPS.md) for priorities and release-specific checks.
