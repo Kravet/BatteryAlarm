@@ -10,7 +10,7 @@ This is a **prioritized list of follow-up work**, not a list of architectural de
 
 ## Architecture — intentional trade-offs
 
-- [ ] **P3 — Optional compiler-enforced domain implementation boundary.** Current Gradle graph is `:app -> :domain` and Hilt modules in `:app` construct `DefaultAlarmController` and `DefaultAlarmSettingsCoordinator` directly. This is acceptable for a small project but relies on convention, not compiler enforcement. If it becomes valuable, consider `:domain-api`, `:domain-impl`, and `:composition` (with `:app -> :domain-api`, `:app -> :composition`, `:composition -> :domain-impl`, `:domain-impl -> :domain-api`). **Not currently implemented.**
+- [ ] **P3 — Optional artifact-level domain implementation boundary.** The current graph is `:app -> :domain`; the two default alarm implementations are Kotlin `internal` and Hilt obtains them through `AlarmDomainFactory`. This limits direct references from Kotlin app source, while both contracts and implementations remain in the same domain artifact. If artifact-level isolation becomes worthwhile, consider `:domain-api`, `:domain-impl`, and `:composition` (with `:app -> :domain-api`, `:app -> :composition`, `:composition -> :domain-impl`, `:domain-impl -> :domain-api`). **That stronger module split is not implemented.**
 - [ ] **P3 — Review Compose file size only for real cohesion problems.** `MainSettingsContent`, `PrivacyBottomSheet`, and `LowBatteryAlarmScreen` are sizeable, but line count alone is not a reason for more files.
 - [ ] **P3 — Evaluate richer UI-specific models where domain objects leak into Compose.** Existing `MainUiState` and `AppUpdateUiModel` already provide presentation models; do not add mapping layers without a concrete need.
 

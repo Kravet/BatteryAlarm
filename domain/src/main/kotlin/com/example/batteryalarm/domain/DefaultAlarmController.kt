@@ -1,6 +1,6 @@
 package com.example.batteryalarm.domain
 
-class DefaultAlarmController(
+internal class DefaultAlarmController(
     private val settingsRepository: AlarmSettingsRepository,
     private val soundPlayer: AlarmSoundPlayer,
     private val vibrator: AlarmVibrator,

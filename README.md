@@ -16,7 +16,7 @@ This repository is also an **architecture case study**: a deliberately compact e
 ## Engineering highlights
 
 - **Android-free domain module**: alarm state transitions, settings coordination, volume ramp and stable update-checking rules live in `:domain` (Kotlin/JVM).
-- **Ports and adapters**: interfaces such as `AlarmController`, `AlarmSoundPlayer`, `AlarmNotifier` and `AlarmSettingsRepository` are implemented or wired by `:app`.
+- **Ports and adapters**: interfaces such as `AlarmController`, `AlarmSoundPlayer`, `AlarmNotifier` and `AlarmSettingsRepository` are implemented in `:domain` or by Android adapters and composed by `:app`.
 - **Hilt composition**: `:app` wires domain implementations to Android sound, vibration, notifications, DataStore and Firebase.
 - **Observable settings**: DataStore drives monitoring through a single `AlarmSettingsCoordinator`.
 - **Separation of concerns**: `AnalyticsAlarmController` decorates the alarm controller; the domain does not import Firebase.
@@ -37,13 +37,15 @@ flowchart TB
     end
     subgraph Domain[" :domain — Kotlin/JVM (no Android SDK)"]
       Contracts["Contracts / ports"]
-      Logic["Alarm controller + settings coordinator"]
+      Factory["AlarmDomainFactory<br/>public construction API"]
+      Logic["Alarm controller + settings coordinator<br/>Kotlin-internal implementations"]
       Update["Stable update-checking rules"]
     end
     UI --> Features
     Features --> Contracts
     Runtime --> Contracts
-    DI --> Logic
+    DI --> Factory
+    Factory --> Logic
     DI --> Adapters
     Adapters --> Contracts
     Logic --> Contracts
@@ -51,9 +53,9 @@ flowchart TB
     Privacy --> Contracts
 ```
 
-**Actual Gradle dependency:** `:app -> :domain`. The domain contains **both contracts and concrete domain classes**. `:app` can import `DefaultAlarmController` for Hilt wiring. This is a deliberate simplicity trade-off, **not a compiler-enforced implementation-access boundary**.
+**Actual Gradle dependency:** `:app -> :domain`. The domain still owns both public contracts and concrete implementations. The two default alarm implementations are Kotlin `internal`; Hilt in `:app` constructs them through the public, stateless `AlarmDomainFactory`, whose methods expose only domain interfaces. This is a Kotlin source-level boundary between Gradle modules, not JVM, binary, or reflection isolation.
 
-**Proposed, not implemented:** a later split into `:domain-api`, `:domain-impl`, and `:composition` could make implementation access compiler-enforced. It is not necessary for the current project size.
+**Proposed, not implemented:** a separate `:domain-api`, `:domain-impl`, and `:composition` split could provide a stronger artifact-level boundary if that becomes worthwhile. It is not needed for the current project size.
 
 ## Key flows
 
@@ -99,7 +101,7 @@ Consent defaults to off in the Android manifest. Dismissing the first-run consen
 | Concern | Implementation | Test |
 | --- | --- | --- |
 | Alarm state and concurrency | [DefaultAlarmController](domain/src/main/kotlin/com/example/batteryalarm/domain/DefaultAlarmController.kt) | [Controller tests](domain/src/test/kotlin/com/example/batteryalarm/domain/DefaultAlarmControllerTest.kt) |
-| DI / adapter composition | [AlarmModule](app/src/main/java/com/example/batteryalarm/di/AlarmModule.kt) | [Alarm decorator tests](app/src/test/java/com/example/batteryalarm/analytics/AnalyticsAlarmControllerTest.kt) |
+| DI / adapter composition | [AlarmModule](app/src/main/java/com/example/batteryalarm/di/AlarmModule.kt) + [AlarmDomainFactory](domain/src/main/kotlin/com/example/batteryalarm/domain/AlarmDomainFactory.kt) | [Alarm decorator tests](app/src/test/java/com/example/batteryalarm/analytics/AnalyticsAlarmControllerTest.kt) |
 | Presentation state and orchestration | [MainViewModel](app/src/main/java/com/example/batteryalarm/ui/MainViewModel.kt), [feature holders](app/src/main/java/com/example/batteryalarm/ui/feature/) | [ViewModel tests](app/src/test/java/com/example/batteryalarm/ui/MainViewModelTest.kt), [feature tests](app/src/test/java/com/example/batteryalarm/ui/feature/) |
 | Privacy side effects | [FirebaseConsentCoordinator](app/src/main/java/com/example/batteryalarm/privacy/FirebaseConsentCoordinator.kt) | [Consent coordinator tests](app/src/test/java/com/example/batteryalarm/privacy/FirebaseConsentCoordinatorTest.kt) |
 | Update decision logic | [CheckForAppUpdate](domain/src/main/kotlin/com/example/batteryalarm/domain/update/CheckForAppUpdate.kt) | [Update checker tests](domain/src/test/kotlin/com/example/batteryalarm/domain/update/CheckForAppUpdateTest.kt) |
@@ -123,8 +125,8 @@ Production APK signing uses local `keystore.properties` or environment variables
 
 | Decision | Benefit | Cost / boundary |
 | --- | --- | --- |
-| Two Gradle modules rather than a larger multi-module graph | Keeps a small app understandable and testable | App can import domain implementation classes |
-| Hilt bindings in app | One discoverable place for Android/domain wiring | App composition layer knows concrete classes |
+| Two Gradle modules rather than a larger multi-module graph | Keeps a small app understandable and testable | The domain artifact still contains implementations; Kotlin `internal` prevents `:app` from importing the selected concrete classes |
+| Hilt bindings in app | One discoverable place for Android/domain wiring | App composition chooses the domain implementation through a public factory and owns Android adapter construction |
 | Mutable state in a synchronized domain controller | Small API, serialized output transitions | Outputs are synchronous; platform edge cases still need device validation |
 | MVVM with `StateFlow` and separate one-off side effects | `MainViewModel` composes screen state while `AlarmFeature`, `PrivacyFeature` and `UpdateFeature` own focused presentation logic | Feature holders add indirection; the ViewModel remains responsible for screen-level composition |
 | Separate consent observer | UI does not call Firebase directly; stored settings are authoritative | Correctness still relies on Firebase SDK and Android runtime validation |
@@ -133,7 +135,7 @@ Production APK signing uses local `keystore.properties` or environment variables
 
 These are **proposals, not implemented features or confirmed defects**.
 
-- **Architectural isolation**: consider `:domain-api` + `:domain-impl` + `:composition` if the implementation boundary becomes important enough to justify more modules.
+- **Stronger architectural isolation**: consider `:domain-api` + `:domain-impl` + `:composition` if artifact-level isolation becomes important enough to justify more modules; the current factory and Kotlin `internal` boundary leaves both contracts and implementations in `:domain`.
 - **Presentation boundaries**: the three feature holders are currently classes in `:app`; consider stronger module boundaries only if their complexity justifies them.
 - **Device reliability**: validate reboot, OEM battery policies, permission changes, low-battery and charging races on physical devices before broader user distribution.
 - **Release readiness**: verify signed APK upgrades and Google Play compatibility independently of this architecture review.

@@ -8,14 +8,13 @@ import com.example.batteryalarm.alarm.AndroidBatteryLowMonitoring
 import com.example.batteryalarm.analytics.AnalyticsAlarmController
 import com.example.batteryalarm.analytics.AppAnalytics
 import com.example.batteryalarm.domain.AlarmController
+import com.example.batteryalarm.domain.AlarmDomainFactory
 import com.example.batteryalarm.domain.AlarmNotifier
 import com.example.batteryalarm.domain.AlarmSettingsCoordinator
 import com.example.batteryalarm.domain.AlarmSettingsRepository
 import com.example.batteryalarm.domain.AlarmSoundPlayer
 import com.example.batteryalarm.domain.AlarmVibrator
 import com.example.batteryalarm.domain.BatteryLowMonitoring
-import com.example.batteryalarm.domain.DefaultAlarmController
-import com.example.batteryalarm.domain.DefaultAlarmSettingsCoordinator
 import com.example.batteryalarm.settings.AndroidAlarmSettingsRepository
 import dagger.Module
 import dagger.Provides
@@ -54,8 +53,8 @@ object AlarmModule {
         batteryLowMonitoring: BatteryLowMonitoring,
         alarmController: AlarmController,
         @ApplicationScope scope: CoroutineScope,
-    ): AlarmSettingsCoordinator = DefaultAlarmSettingsCoordinator(
-        alarmSettingsRepository = alarmSettingsRepository,
+    ): AlarmSettingsCoordinator = AlarmDomainFactory.createAlarmSettingsCoordinator(
+        settingsRepository = alarmSettingsRepository,
         batteryLowMonitoring = batteryLowMonitoring,
         alarmController = alarmController,
         scope = scope,
@@ -92,7 +91,7 @@ object AlarmModule {
         notifier: AlarmNotifier,
         analytics: AppAnalytics,
     ): AlarmController = AnalyticsAlarmController(
-        delegate = DefaultAlarmController(
+        delegate = AlarmDomainFactory.createAlarmController(
             settingsRepository = settingsRepository,
             soundPlayer = soundPlayer,
             vibrator = vibrator,

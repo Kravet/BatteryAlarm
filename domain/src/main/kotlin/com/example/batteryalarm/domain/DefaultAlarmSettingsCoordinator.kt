@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
-class DefaultAlarmSettingsCoordinator(
+internal class DefaultAlarmSettingsCoordinator(
     private val alarmSettingsRepository: AlarmSettingsRepository,
     private val batteryLowMonitoring: BatteryLowMonitoring,
     private val alarmController: AlarmController,
