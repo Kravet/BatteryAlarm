@@ -2,6 +2,7 @@ package com.example.batteryalarm.ui.feature
 
 import com.example.batteryalarm.alarm.BatteryLowAlarmHandler
 import com.example.batteryalarm.analytics.AppAnalytics
+import com.example.batteryalarm.analytics.recordSafely
 import com.example.batteryalarm.domain.AlarmController
 import com.example.batteryalarm.domain.AlarmSettingsRepository
 import com.example.batteryalarm.domain.AlarmState
@@ -52,7 +53,9 @@ class AlarmFeature @Inject constructor(
         scope.launch {
             try {
                 settingsRepository.toggleAlarmEnabled()
-                analytics.logAlarmToggled(enabled = settingsRepository.isAlarmEnabled())
+                analytics.recordSafely {
+                    logAlarmToggled(enabled = settingsRepository.isAlarmEnabled())
+                }
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
@@ -62,13 +65,13 @@ class AlarmFeature @Inject constructor(
     }
 
     fun onNotificationPermissionDenied() {
-        analytics.logNotificationPermissionDenied()
+        analytics.recordSafely { logNotificationPermissionDenied() }
     }
 
     fun startTestAlarm(scope: CoroutineScope) {
         if (_state.value.isTestAlarmPending) return
 
-        analytics.logTestAlarmStarted()
+        analytics.recordSafely { logTestAlarmStarted() }
         _state.update {
             it.copy(
                 isTestAlarmPending = true,
@@ -90,7 +93,7 @@ class AlarmFeature @Inject constructor(
                 }
             },
             onFailed = {
-                analytics.logTestAlarmFailed()
+                analytics.recordSafely { logTestAlarmFailed() }
                 _state.update {
                     it.copy(isTestAlarmPending = false, testAlarmSecondsRemaining = null)
                 }

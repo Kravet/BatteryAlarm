@@ -7,6 +7,7 @@ import com.example.batteryalarm.alarm.AndroidAlarmVibrator
 import com.example.batteryalarm.alarm.AndroidBatteryLowMonitoring
 import com.example.batteryalarm.analytics.AnalyticsAlarmController
 import com.example.batteryalarm.analytics.AppAnalytics
+import com.example.batteryalarm.analytics.AppErrorReporter
 import com.example.batteryalarm.domain.AlarmController
 import com.example.batteryalarm.domain.AlarmNotifier
 import com.example.batteryalarm.domain.AlarmSettingsCoordinator
@@ -15,7 +16,7 @@ import com.example.batteryalarm.domain.AlarmSoundPlayer
 import com.example.batteryalarm.domain.AlarmVibrator
 import com.example.batteryalarm.domain.BatteryLowMonitoring
 import com.example.batteryalarm.domain.DefaultAlarmController
-import com.example.batteryalarm.domain.DefaultAlarmSettingsCoordinator
+import com.example.batteryalarm.domain.provideDefaultAlarmSettingsCoordinator
 import com.example.batteryalarm.settings.AndroidAlarmSettingsRepository
 import dagger.Module
 import dagger.Provides
@@ -54,7 +55,7 @@ object AlarmModule {
         batteryLowMonitoring: BatteryLowMonitoring,
         alarmController: AlarmController,
         @ApplicationScope scope: CoroutineScope,
-    ): AlarmSettingsCoordinator = DefaultAlarmSettingsCoordinator(
+    ): AlarmSettingsCoordinator = provideDefaultAlarmSettingsCoordinator(
         alarmSettingsRepository = alarmSettingsRepository,
         batteryLowMonitoring = batteryLowMonitoring,
         alarmController = alarmController,
@@ -66,22 +67,28 @@ object AlarmModule {
     fun provideAlarmSoundPlayer(
         @ApplicationContext context: Context,
         @ApplicationScope scope: CoroutineScope,
+        analytics: AppAnalytics,
+        errorReporter: AppErrorReporter,
     ): AlarmSoundPlayer = AndroidAlarmSoundPlayer(
         context = context,
         scope = scope,
+        analytics = analytics,
+        errorReporter = errorReporter,
     )
 
     @Provides
     @Singleton
     fun provideAlarmVibrator(
         @ApplicationContext context: Context,
-    ): AlarmVibrator = AndroidAlarmVibrator(context)
+        analytics: AppAnalytics,
+    ): AlarmVibrator = AndroidAlarmVibrator(context, analytics)
 
     @Provides
     @Singleton
     fun provideAlarmNotifier(
         @ApplicationContext context: Context,
-    ): AlarmNotifier = AndroidAlarmNotifier(context)
+        analytics: AppAnalytics,
+    ): AlarmNotifier = AndroidAlarmNotifier(context, analytics)
 
     @Provides
     @Singleton
@@ -91,6 +98,7 @@ object AlarmModule {
         vibrator: AlarmVibrator,
         notifier: AlarmNotifier,
         analytics: AppAnalytics,
+        errorReporter: AppErrorReporter,
     ): AlarmController = AnalyticsAlarmController(
         delegate = DefaultAlarmController(
             settingsRepository = settingsRepository,
@@ -99,5 +107,6 @@ object AlarmModule {
             notifier = notifier,
         ),
         analytics = analytics,
+        errorReporter = errorReporter,
     )
 }

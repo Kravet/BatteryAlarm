@@ -10,6 +10,10 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
+import com.example.batteryalarm.analytics.AppAnalytics
+import com.example.batteryalarm.analytics.AppErrorReporter
+import com.example.batteryalarm.analytics.recordSafely as recordErrorSafely
+import com.example.batteryalarm.analytics.recordSafely
 import com.example.batteryalarm.di.ApplicationScope
 import com.example.batteryalarm.domain.AlarmSoundPlayer
 import com.example.batteryalarm.domain.AlarmSoundSession
@@ -20,6 +24,8 @@ import kotlinx.coroutines.CoroutineScope
 class AndroidAlarmSoundPlayer(
     private val context: Context,
     @param:ApplicationScope private val scope: CoroutineScope,
+    private val analytics: AppAnalytics,
+    private val errorReporter: AppErrorReporter,
 ) : AlarmSoundPlayer {
     private val lock = Any()
     private val audioManager = context.getSystemService(AudioManager::class.java)
@@ -33,6 +39,9 @@ class AndroidAlarmSoundPlayer(
             val alarmUri = defaultAlarmUri()
             if (alarmUri == null) {
                 Log.w(TAG, "No default alarm sound available")
+                analytics.recordSafely {
+                    logAlarmOutputResult(OUTPUT_SOUND, STATUS_UNAVAILABLE)
+                }
                 return
             }
 
@@ -44,6 +53,9 @@ class AndroidAlarmSoundPlayer(
                 player.isLooping = true
                 player.setOnErrorListener { _, what, extra ->
                     Log.e(TAG, "MediaPlayer error what=$what extra=$extra")
+                    analytics.recordSafely {
+                        logAlarmOutputResult(OUTPUT_SOUND, STATUS_ERROR)
+                    }
                     stopLocked()
                     true
                 }
@@ -54,9 +66,16 @@ class AndroidAlarmSoundPlayer(
                         player = player,
                     ),
                 )
+                analytics.recordSafely {
+                    logAlarmOutputResult(OUTPUT_SOUND, STATUS_PLAYER_START_RETURNED)
+                }
                 Log.d(TAG, "Started looping alarm sound uri=$alarmUri")
             } catch (exception: Exception) {
                 Log.e(TAG, "Failed to start alarm sound", exception)
+                analytics.recordSafely {
+                    logAlarmOutputResult(OUTPUT_SOUND, STATUS_ERROR)
+                }
+                errorReporter.recordErrorSafely("alarm_sound_start", exception)
                 player.release()
                 abandonAudioFocus()
             }
@@ -140,5 +159,9 @@ class AndroidAlarmSoundPlayer(
 
     companion object {
         private const val TAG = "AndroidAlarmSoundPlayer"
+        private const val OUTPUT_SOUND = "sound"
+        private const val STATUS_UNAVAILABLE = "unavailable"
+        private const val STATUS_PLAYER_START_RETURNED = "player_start_returned"
+        private const val STATUS_ERROR = "error"
     }
 }

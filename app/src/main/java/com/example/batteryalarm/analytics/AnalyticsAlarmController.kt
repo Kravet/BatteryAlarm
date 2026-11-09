@@ -6,41 +6,59 @@ import com.example.batteryalarm.domain.AlarmStartResult
 import com.example.batteryalarm.domain.AlarmState
 import com.example.batteryalarm.domain.AlarmStopReason
 import com.example.batteryalarm.domain.AlarmStopResult
+import kotlinx.coroutines.CancellationException
 import java.util.Calendar
 
 class AnalyticsAlarmController(
     private val delegate: AlarmController,
     private val analytics: AppAnalytics,
+    private val errorReporter: AppErrorReporter,
 ) : AlarmController {
     override val state: AlarmState
         get() = delegate.state
 
     override suspend fun startAlarm(reason: AlarmStartReason): AlarmStartResult {
-        val result = delegate.startAlarm(reason)
+        val result = try {
+            delegate.startAlarm(reason)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            errorReporter.recordSafely("alarm_start", exception)
+            throw exception
+        }
         when (result) {
             is AlarmStartResult.Started -> {
-                analytics.logAlarmStarted(
-                    reason = reason.toAnalyticsValue(),
-                    hourOfDay = Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
-                )
+                analytics.recordSafely {
+                    logAlarmStarted(
+                        reason = reason.toAnalyticsValue(),
+                        hourOfDay = Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
+                    )
+                }
             }
             is AlarmStartResult.AlreadyActive -> {
-                analytics.logAlarmStartBlocked(RESULT_ALREADY_ACTIVE)
+                analytics.recordSafely { logAlarmStartBlocked(RESULT_ALREADY_ACTIVE) }
             }
             AlarmStartResult.Disabled -> {
-                analytics.logAlarmStartBlocked(RESULT_DISABLED)
+                analytics.recordSafely { logAlarmStartBlocked(RESULT_DISABLED) }
             }
             AlarmStartResult.Superseded -> {
-                analytics.logAlarmStartBlocked(RESULT_SUPERSEDED)
+                analytics.recordSafely { logAlarmStartBlocked(RESULT_SUPERSEDED) }
             }
         }
         return result
     }
 
     override fun stopAlarm(reason: AlarmStopReason): AlarmStopResult {
-        val result = delegate.stopAlarm(reason)
+        val result = try {
+            delegate.stopAlarm(reason)
+        } catch (exception: Exception) {
+            errorReporter.recordSafely("alarm_stop", exception)
+            throw exception
+        }
         if (result is AlarmStopResult.Stopped) {
-            analytics.logAlarmStopped(reason = reason.toAnalyticsValue(), durationSec = null)
+            analytics.recordSafely {
+                logAlarmStopped(reason = reason.toAnalyticsValue(), durationSec = null)
+            }
         }
         return result
     }

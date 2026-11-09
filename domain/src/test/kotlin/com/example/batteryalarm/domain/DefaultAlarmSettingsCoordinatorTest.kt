@@ -9,6 +9,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -92,6 +93,18 @@ class DefaultAlarmSettingsCoordinatorTest {
 
         assertEquals(listOf(true, false), monitoring.enabledValues)
         assertEquals(listOf(AlarmStopReason.SettingsDisabled), alarmController.stopReasons)
+    }
+
+    @Test
+    fun `public factory creates coordinator while implementation stays internal`() = runTest {
+        val coordinator = provideDefaultAlarmSettingsCoordinator(
+            alarmSettingsRepository = CoordinatorFakeAlarmSettingsRepository(enabled = true),
+            batteryLowMonitoring = FakeBatteryLowMonitoring(),
+            alarmController = FakeAlarmController(),
+            scope = CoroutineScope(backgroundScope.coroutineContext + UnconfinedTestDispatcher(testScheduler)),
+        )
+
+        assertNotNull(coordinator)
     }
 }
 

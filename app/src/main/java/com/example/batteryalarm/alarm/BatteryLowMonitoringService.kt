@@ -14,6 +14,8 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.batteryalarm.R
+import com.example.batteryalarm.analytics.AppAnalytics
+import com.example.batteryalarm.analytics.recordSafely
 import com.example.batteryalarm.ui.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -22,6 +24,9 @@ import javax.inject.Inject
 class BatteryLowMonitoringService : Service() {
     @Inject
     lateinit var batteryLowAlarmHandler: BatteryLowAlarmHandler
+
+    @Inject
+    lateinit var analytics: AppAnalytics
 
     private var batteryEventReceiver: BroadcastReceiver? = null
 
@@ -34,13 +39,19 @@ class BatteryLowMonitoringService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand action=${intent?.action} startId=$startId")
-        startMonitoring()
+        try {
+            startMonitoring()
+        } catch (exception: Exception) {
+            analytics.recordSafely { logMonitoringStateChanged("initialization_failed") }
+            throw exception
+        }
         return START_STICKY
     }
 
     override fun onDestroy() {
         Log.d(TAG, "Service onDestroy")
         unregisterBatteryEventReceiver()
+        analytics.recordSafely { logMonitoringStateChanged("stopped") }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
@@ -54,6 +65,7 @@ class BatteryLowMonitoringService : Service() {
         createChannelIfNeeded()
         startForeground(NOTIFICATION_ID, buildMonitoringNotification())
         registerBatteryEventReceiver()
+        analytics.recordSafely { logMonitoringStateChanged("initialization_succeeded") }
         Log.d(TAG, "Battery low monitoring started")
     }
 
@@ -85,6 +97,7 @@ class BatteryLowMonitoringService : Service() {
                 when (intent.action) {
                     Intent.ACTION_BATTERY_LOW -> {
                         Log.d(TAG, "ACTION_BATTERY_LOW received")
+                        analytics.recordSafely { logBatteryLowReceived() }
                         val pendingResult = goAsync()
                         batteryLowAlarmHandler.handleBatteryLow(context) {
                             pendingResult.finish()
@@ -92,6 +105,7 @@ class BatteryLowMonitoringService : Service() {
                     }
                     Intent.ACTION_POWER_CONNECTED -> {
                         Log.d(TAG, "ACTION_POWER_CONNECTED received")
+                        analytics.recordSafely { logPowerConnectedReceived() }
                         val pendingResult = goAsync()
                         batteryLowAlarmHandler.handlePowerConnected {
                             pendingResult.finish()

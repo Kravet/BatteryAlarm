@@ -57,6 +57,39 @@ class FirebaseAppAnalytics @Inject constructor(
         }
     }
 
+    override fun logBatteryLowReceived() {
+        log(EVENT_BATTERY_LOW_RECEIVED)
+    }
+
+    override fun logPowerConnectedReceived() {
+        log(EVENT_POWER_CONNECTED_RECEIVED)
+    }
+
+    override fun logAlarmScreenForeground(reason: String) {
+        log(EVENT_ALARM_SCREEN_FOREGROUND) {
+            putString(PARAM_REASON, reason)
+        }
+    }
+
+    override fun logAlarmDismissRequested(source: String) {
+        log(EVENT_ALARM_DISMISS_REQUESTED) {
+            putString(PARAM_SOURCE, source)
+        }
+    }
+
+    override fun logAlarmOutputResult(output: String, status: String) {
+        log(EVENT_ALARM_OUTPUT_RESULT) {
+            putString(PARAM_OUTPUT, output)
+            putString(PARAM_STATUS, status)
+        }
+    }
+
+    override fun logMonitoringStateChanged(state: String) {
+        log(EVENT_MONITORING_STATE_CHANGED) {
+            putString(PARAM_STATE, state)
+        }
+    }
+
     override fun logUpdateAvailableShown(version: String) {
         log(EVENT_UPDATE_AVAILABLE_SHOWN) {
             putString(PARAM_VERSION, version)
@@ -82,6 +115,12 @@ class FirebaseAppAnalytics @Inject constructor(
         const val EVENT_ALARM_STARTED = "alarm_started"
         const val EVENT_ALARM_START_BLOCKED = "alarm_start_blocked"
         const val EVENT_ALARM_STOPPED = "alarm_stopped"
+        const val EVENT_BATTERY_LOW_RECEIVED = "battery_low_received"
+        const val EVENT_POWER_CONNECTED_RECEIVED = "power_connected_received"
+        const val EVENT_ALARM_SCREEN_FOREGROUND = "alarm_screen_foreground"
+        const val EVENT_ALARM_DISMISS_REQUESTED = "alarm_dismiss_requested"
+        const val EVENT_ALARM_OUTPUT_RESULT = "alarm_output_result"
+        const val EVENT_MONITORING_STATE_CHANGED = "monitoring_state_changed"
         const val EVENT_UPDATE_AVAILABLE_SHOWN = "update_available_shown"
         const val EVENT_UPDATE_CLICKED = "update_clicked"
 
@@ -91,5 +130,9 @@ class FirebaseAppAnalytics @Inject constructor(
         const val PARAM_HOUR_OF_DAY = "hour_of_day"
         const val PARAM_DURATION_SEC = "duration_sec"
         const val PARAM_VERSION = "version"
+        const val PARAM_SOURCE = "source"
+        const val PARAM_OUTPUT = "output"
+        const val PARAM_STATUS = "status"
+        const val PARAM_STATE = "state"
     }
 }

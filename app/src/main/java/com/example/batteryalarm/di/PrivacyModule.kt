@@ -1,6 +1,8 @@
 package com.example.batteryalarm.di
 
 import android.content.Context
+import com.example.batteryalarm.analytics.AppErrorReporter
+import com.example.batteryalarm.analytics.FirebaseAppErrorReporter
 import com.example.batteryalarm.domain.privacy.PrivacyConsentRepository
 import com.example.batteryalarm.privacy.AnalyticsCollectionController
 import com.example.batteryalarm.privacy.CrashlyticsCollectionController
@@ -46,4 +48,9 @@ object PrivacyModule {
                 crashlytics.deleteUnsentReports()
             }
         }
+
+    @Provides
+    @Singleton
+    fun provideAppErrorReporter(): AppErrorReporter =
+        FirebaseAppErrorReporter(FirebaseCrashlytics.getInstance())
 }

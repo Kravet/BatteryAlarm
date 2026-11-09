@@ -9,6 +9,8 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.compose.ui.graphics.toArgb
+import com.example.batteryalarm.analytics.AppAnalytics
+import com.example.batteryalarm.analytics.recordSafely
 import com.example.batteryalarm.R
 import com.example.batteryalarm.domain.AlarmNotifier
 import com.example.batteryalarm.ui.theme.BrandRed
@@ -17,6 +19,7 @@ import com.example.batteryalarm.ui.AlarmActivity
 
 class AndroidAlarmNotifier(
     private val context: Context,
+    private val analytics: AppAnalytics,
 ) : AlarmNotifier {
     private val notificationManager =
         context.getSystemService(NotificationManager::class.java)
@@ -68,7 +71,17 @@ class AndroidAlarmNotifier(
             )
             .build()
 
-        notificationManager.notify(ALARM_NOTIFICATION_ID, notification)
+        try {
+            notificationManager.notify(ALARM_NOTIFICATION_ID, notification)
+            analytics.recordSafely {
+                logAlarmOutputResult(OUTPUT_NOTIFICATION, STATUS_NOTIFY_RETURNED)
+            }
+        } catch (exception: Exception) {
+            analytics.recordSafely {
+                logAlarmOutputResult(OUTPUT_NOTIFICATION, STATUS_ERROR)
+            }
+            throw exception
+        }
         Log.d(TAG, "Posted alarm notification, reason=$reason")
     }
 
@@ -105,6 +118,9 @@ class AndroidAlarmNotifier(
 
     companion object {
         private const val TAG = "AndroidAlarmNotifier"
+        private const val OUTPUT_NOTIFICATION = "notification"
+        private const val STATUS_NOTIFY_RETURNED = "notify_returned"
+        private const val STATUS_ERROR = "error"
         const val CHANNEL_ID = "battery_alarm"
         const val ALARM_NOTIFICATION_ID = 1001
 

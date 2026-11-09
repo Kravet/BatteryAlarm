@@ -30,6 +30,17 @@ class AlarmViewModelTest {
     }
 
     @Test
+    fun `active alarm reason is available for screen diagnostics`() {
+        val viewModel = AlarmViewModel(
+            alarmController = AlarmViewModelFakeAlarmController(
+                initialState = AlarmState.Active(AlarmStartReason.SystemLowBattery),
+            ),
+        )
+
+        assertEquals(AlarmStartReason.SystemLowBattery, viewModel.activeAlarmStartReason())
+    }
+
+    @Test
     fun `dismiss alarm stops outputs`() {
         val alarmController = AlarmViewModelFakeAlarmController(
             initialState = AlarmState.Active(AlarmStartReason.TestAlarmFlow),

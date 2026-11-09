@@ -16,12 +16,21 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
+import com.example.batteryalarm.analytics.AppAnalytics
+import com.example.batteryalarm.analytics.recordSafely
+import com.example.batteryalarm.domain.AlarmStartReason
 import com.example.batteryalarm.ui.theme.BatteryAlarmTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class AlarmActivity : ComponentActivity() {
     private val viewModel: AlarmViewModel by viewModels()
+
+    @Inject
+    lateinit var analytics: AppAnalytics
+
+    private var alarmScreenForegroundReported = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,6 +77,15 @@ class AlarmActivity : ComponentActivity() {
         finishIfNeeded("onNewIntent")
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus || alarmScreenForegroundReported) return
+
+        val reason = viewModel.activeAlarmStartReason()?.toAnalyticsValue() ?: return
+        analytics.recordSafely { logAlarmScreenForeground(reason) }
+        alarmScreenForegroundReported = true
+    }
+
     private fun finishIfNeeded(source: String): Boolean {
         if (shouldFinishImmediately(intent)) {
             Log.d(TAG, "$source: finishing, reason=finish_action")
@@ -85,6 +103,7 @@ class AlarmActivity : ComponentActivity() {
     }
 
     private fun dismissAlarmAndFinish() {
+        analytics.recordSafely { logAlarmDismissRequested(SOURCE_SCREEN_HOLD) }
         viewModel.onDismissAlarmClick()
         if (isAppLaunchEntryPoint(intent)) {
             finishAffinity()
@@ -105,6 +124,11 @@ class AlarmActivity : ComponentActivity() {
 
     private fun isAppLaunchEntryPoint(intent: Intent?): Boolean =
         intent?.getStringExtra(EXTRA_ENTRY_POINT) == ENTRY_POINT_APP_LAUNCH
+
+    private fun AlarmStartReason.toAnalyticsValue(): String = when (this) {
+        AlarmStartReason.SystemLowBattery -> "system_low_battery"
+        AlarmStartReason.TestAlarmFlow -> "test"
+    }
 
     private fun currentBatteryPercentage(): Int {
         val batteryManager = getSystemService(BatteryManager::class.java)
@@ -127,6 +151,7 @@ class AlarmActivity : ComponentActivity() {
         private const val TAG = "AlarmActivity"
         private const val ACTION_FINISH = "com.example.batteryalarm.action.FINISH_ALARM"
         private const val DEFAULT_BATTERY_PERCENTAGE = 10
+        private const val SOURCE_SCREEN_HOLD = "screen_hold"
         private const val EXTRA_ENTRY_POINT = "com.example.batteryalarm.extra.ALARM_ENTRY_POINT"
         private const val ENTRY_POINT_FULL_SCREEN = "full_screen"
         private const val ENTRY_POINT_APP_LAUNCH = "app_launch"
